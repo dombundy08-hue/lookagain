@@ -25,7 +25,7 @@ npm run dev
 1. Edit `private/secrets.json` (see `private/secrets.example.json` for the shape).
 2. To unlock the "secret" stage, fill in `"secret": { "code": "...", "title": "...", "body": "..." }`.
 3. Run `npm run seal`. It rewrites `src/game/sealed.json` and self-checks every answer.
-4. Commit and push. The site redeploys.
+4. Commit, push, then run `npm run deploy` to publish.
 
 Answers are normalized before checking: case, punctuation, spaces, a leading "the/a/my", and one plural "s" are ignored.
 

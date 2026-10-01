@@ -94,12 +94,14 @@ export function AnswerForm({
   nudges,
   submitLabel = "Enter",
   disabled = false,
+  inputMode,
 }: {
   label: string;
   onSubmit: (typed: string) => Promise<boolean>;
   nudges: readonly string[];
   submitLabel?: string;
   disabled?: boolean;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
 }) {
   const id = useId();
   const { find, found } = useSlips();
@@ -141,6 +143,7 @@ export function AnswerForm({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           disabled={disabled}
+          inputMode={inputMode}
           autoFocus
           autoComplete="off"
           autoCapitalize="none"

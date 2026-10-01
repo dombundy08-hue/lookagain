@@ -228,6 +228,7 @@ export function SecretBox({
           label={SECRET_COPY.label}
           nudges={[SECRET_COPY.notYet]}
           submitLabel="Unlock"
+          inputMode="numeric"
           onSubmit={async (typed) => {
             const p = await openSecret(typed);
             if (!p) return false;
