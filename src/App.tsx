@@ -16,6 +16,7 @@ import {
   TapeStage,
 } from "@/components/game/story";
 import TopBar from "@/components/game/TopBar";
+import { HomeHint } from "@/components/game/Hint";
 import { CATCHPHRASE, HERO_SUBTITLE, START_OVER_CONFIRM } from "@/game/copy";
 import { STAGE_BY_ID, type StageType } from "@/game/stages";
 import { AUDIO_EVENT, isAudioBlocked, restartMusic, setMusicEnabled, startMusic } from "@/lib/audio";
@@ -158,6 +159,7 @@ function Game({
             </button>
           }
           onEyesSeen={() => find("eyes")}
+          counterTail={<HomeHint />}
           secondary={
             progress.started ? (
               <Button variant="ghost" size="sm" onClick={startOver}>

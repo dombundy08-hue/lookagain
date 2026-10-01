@@ -5,6 +5,7 @@ import { Hourglass, Lightbulb } from "lucide-react";
 import { Button } from "@/components/ui/8bit-button";
 import { FINAL_NUDGES, GOOD, NUDGES, RECALL_COPY } from "@/game/copy";
 import { STAGE_BY_ID } from "@/game/stages";
+import { Hint } from "./Hint";
 import { check, normalize, openTranscript } from "@/lib/sealed";
 import { AnswerForm, Counter, GoodLine, KeeperLine, PromptCard, StageShell, TapeClock, type StageProps } from "./shared";
 
@@ -63,6 +64,7 @@ export function RiddlesStage({ stage, progress, update, next }: StageProps<"ridd
             }}
           />
         )}
+        {!solved ? <Hint key={item.id} id={item.id} /> : null}
       </PromptCard>
     </StageShell>
   );
@@ -165,6 +167,7 @@ export function RecallStage({ stage, progress, update, next }: StageProps<"recal
             }}
           />
         )}
+        {!solved ? <Hint key={item.id} id={item.id} /> : null}
       </PromptCard>
     </StageShell>
   );
@@ -263,6 +266,7 @@ export function FinalStage({ stage, progress, update, next }: StageProps<"final"
             return true;
           }}
         />
+        <Hint id={stage.id} />
       </PromptCard>
     </StageShell>
   );

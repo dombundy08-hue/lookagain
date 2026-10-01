@@ -25,6 +25,8 @@ export interface PixelRocketHeroProps {
   channel?: React.ReactNode;
   /** Called when someone taps the screen while the eyes in the dark are open. */
   onEyesSeen?: () => void;
+  /** Replaces the last digit of the tape counter in the corner. */
+  counterTail?: React.ReactNode;
 }
 
 // --- Main Hero Component ---
@@ -37,6 +39,7 @@ export const PixelRocketHero = ({
   secondary,
   channel,
   onEyesSeen,
+  counterTail,
 }: PixelRocketHeroProps) => {
   const reduce = useReducedMotion();
   const eyesOpen = useRef(false);
@@ -111,7 +114,7 @@ export const PixelRocketHero = ({
           {secondary}
         </motion.div>
       </div>
-      <RecBadge />
+      <RecBadge tail={counterTail} />
     </div>
   );
 };
@@ -137,10 +140,13 @@ const HeroNav = ({ channel }: { channel?: React.ReactNode }) => {
   );
 };
 
-const RecBadge = () => (
-  <div className="retro pointer-events-none absolute bottom-6 left-6 z-20 flex items-center gap-3 text-[10px] text-muted-foreground" aria-hidden="true">
-    <span className="blink inline-block size-2 bg-destructive" />
-    PLAY &#9654; SP 0:00:00
+const RecBadge = ({ tail }: { tail?: React.ReactNode }) => (
+  <div className="retro pointer-events-none absolute bottom-6 left-6 z-20 flex items-center gap-3 text-[10px] text-muted-foreground">
+    <span className="blink inline-block size-2 bg-destructive" aria-hidden="true" />
+    <span>
+      <span aria-hidden="true">PLAY &#9654; SP 0:00:0</span>
+      {tail ?? <span aria-hidden="true">0</span>}
+    </span>
   </div>
 );
 

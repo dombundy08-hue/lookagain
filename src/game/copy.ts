@@ -106,3 +106,6 @@ export const SLIP_COPY = {
 
 /** The catchphrase on the title screen. The word "secret" in it is the way back in. */
 export const CATCHPHRASE = ["Look again. The ", "secret", "'s never hiding. It's just waiting to be noticed."] as const;
+
+/** The last and best-hidden hint: the final digit of the tape counter on the title screen. */
+export const HOME_CLUE = "The word works from here too. You never have to play it all again to come back.";

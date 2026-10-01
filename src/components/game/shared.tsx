@@ -81,7 +81,7 @@ export function StageShell({
 }
 
 export function PromptCard({ children, className }: { children: ReactNode; className?: string }) {
-  return <Card className={cn("p-6 md:p-8", className)}>{children}</Card>;
+  return <Card className={cn("relative p-6 md:p-8", className)}>{children}</Card>;
 }
 
 /**

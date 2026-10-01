@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/8bit-button";
 import { ORDER_COPY, REWIND_COPY, SPOT_COPY, TUNER_COPY } from "@/game/copy";
 import { setStatic } from "@/lib/audio";
 import { cn } from "@/lib/utils";
+import { Hint } from "./Hint";
 import { GoodLine, PromptCard, StageShell, prefersReducedMotion, type StageProps } from "./shared";
 
 function shuffled(n: number): number[] {
@@ -98,6 +99,7 @@ export function RewindStage({ stage, progress, update, next }: StageProps<"rewin
           ))}
           {!done ? <li className="blink text-primary" aria-hidden="true">_</li> : null}
         </ol>
+        {!done ? <Hint id={stage.id} /> : null}
       </PromptCard>
 
       {!done && !ranOut ? (
@@ -182,6 +184,7 @@ export function SpotStage({ stage, update, next }: StageProps<"spot">) {
               </span>
             ))}
           </p>
+          {!found ? <Hint id={stage.id} /> : null}
         </PromptCard>
       </div>
       {found ? (
@@ -309,6 +312,7 @@ export function TunerStage({ stage, update, next }: StageProps<"tuner">) {
             className="h-10 w-full cursor-pointer accent-[var(--primary)]"
           />
         </label>
+        {!locked ? <Hint id={stage.id} /> : null}
       </PromptCard>
       {locked ? (
         <GoodLine text={TUNER_COPY.locked} onNext={next} nextLabel="Continue" />
@@ -368,9 +372,12 @@ export function OrderStage({ stage, update, next }: StageProps<"order">) {
 
   return (
     <StageShell title="Bonus: The Files" intro={stage.intro}>
-      <p id="order-help" className="text-lg text-muted-foreground">
-        {ORDER_COPY.help}
-      </p>
+      <div className="relative flex flex-col gap-3 pr-8">
+        <p id="order-help" className="text-lg text-muted-foreground">
+          {ORDER_COPY.help}
+        </p>
+        {!done ? <Hint id={stage.id} /> : null}
+      </div>
       <ol className="flex flex-col gap-2" aria-describedby="order-help">
         {order.map((item, pos) => {
           const dragging = drag?.from === pos;
