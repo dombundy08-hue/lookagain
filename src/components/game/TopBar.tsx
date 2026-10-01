@@ -1,0 +1,99 @@
+import { useRef } from "react";
+import { Eye, RotateCcw, ScrollText, Volume2, VolumeX, X } from "lucide-react";
+
+import { Button } from "@/components/ui/8bit-button";
+import { DIFFICULTY_LOCKED } from "@/game/copy";
+import { MILESTONES, STAGE_BY_ID, STAGES } from "@/game/stages";
+import { cn } from "@/lib/utils";
+import { StarCount } from "./bonus";
+import HuntTimeline from "./HuntTimeline";
+
+const order = STAGES.map((s) => s.id);
+
+export default function TopBar({
+  stageId,
+  stars,
+  hiss,
+  onToggleHiss,
+  onStartOver,
+}: {
+  stageId: string;
+  stars: number;
+  hiss: boolean;
+  onToggleHiss: () => void;
+  onStartOver: () => void;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const at = order.indexOf(stageId);
+
+  return (
+    <header className="sticky top-0 z-40 border-b-2 border-border bg-background/95 backdrop-blur-sm">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
+        <div className="flex items-center gap-3">
+          <Eye className="size-5 text-primary" aria-hidden="true" />
+          <span className="retro text-[10px]">Curiosity Hour</span>
+        </div>
+
+        <ol className="flex flex-1 items-center gap-2" aria-label="Progress">
+          {MILESTONES.map((id) => {
+            const idx = order.indexOf(id);
+            const state = at > idx ? "done" : at === idx ? "current" : "todo";
+            return (
+              <li key={id} className="flex items-center gap-2" aria-current={state === "current" ? "step" : undefined}>
+                <span
+                  aria-hidden="true"
+                  className={cn(
+                    "inline-block size-3",
+                    state === "done" && "bg-primary",
+                    state === "current" && "blink bg-primary",
+                    state === "todo" && "border-2 border-border",
+                  )}
+                />
+                <span className={cn("retro hidden text-[8px] sm:inline", state === "todo" ? "text-muted-foreground" : "text-foreground")}>
+                  {STAGE_BY_ID[id]?.label}
+                  <span className="sr-only">{state === "done" ? " (done)" : state === "current" ? " (now)" : ""}</span>
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+
+        <div className="flex items-center gap-4">
+          <span className="retro hidden text-[8px] text-destructive md:inline">{DIFFICULTY_LOCKED}</span>
+          <StarCount count={stars} />
+          <Button variant="ghost" size="sm" className="px-2" onClick={() => dialogRef.current?.showModal()} aria-label="Tape log">
+            <ScrollText aria-hidden="true" />
+          </Button>
+          <Button variant="ghost" size="sm" className="px-2" onClick={onToggleHiss} aria-pressed={hiss} aria-label="Tape hiss">
+            {hiss ? <Volume2 aria-hidden="true" /> : <VolumeX aria-hidden="true" />}
+          </Button>
+          <Button variant="ghost" size="sm" className="px-2" onClick={onStartOver} aria-label="Start over">
+            <RotateCcw aria-hidden="true" />
+          </Button>
+        </div>
+      </div>
+
+      <dialog
+        ref={dialogRef}
+        className="m-auto max-h-[90svh] w-[min(1100px,94vw)] overflow-auto bg-background text-foreground backdrop:bg-black/80"
+        aria-label="Tape log"
+        onClick={(e) => {
+          if (e.target === dialogRef.current) dialogRef.current?.close();
+        }}
+      >
+        <div className="pixel-border m-1 relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute top-3 right-3 px-2"
+            onClick={() => dialogRef.current?.close()}
+            aria-label="Close"
+          >
+            <X aria-hidden="true" />
+          </Button>
+          <HuntTimeline className="py-10" />
+        </div>
+      </dialog>
+    </header>
+  );
+}
