@@ -68,6 +68,13 @@ function SlipToast({
   const ref = useRef<HTMLDialogElement>(null);
   // A modal dialog sits in the top layer, so a slip found inside the tape log still shows on top.
   const onCloseRef = useRef(onClose);
+  const closed = useRef(false);
+  function closeNow() {
+    if (closed.current) return;
+    closed.current = true;
+    if (ref.current?.open) ref.current.close();
+    onCloseRef.current();
+  }
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
@@ -76,9 +83,11 @@ function SlipToast({
     if (!d) return;
     if (!d.open) d.showModal();
     // Native listener: covers the Keep button and the Escape key alike.
-    const handle = () => onCloseRef.current();
+    // Escape closes it natively; the button calls closeNow. Either way, report it once.
+    const handle = () => closeNow();
     d.addEventListener("close", handle);
     return () => d.removeEventListener("close", handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   if (!slip) return null;
   return (
@@ -91,10 +100,15 @@ function SlipToast({
         <p className="retro flex items-center gap-3 text-[10px] uppercase text-primary">
           <Feather className="size-4" aria-hidden="true" /> {SLIP_COPY.found(Math.max(count, 1), SLIPS.length)}
         </p>
-        <p className="keeper-voice text-2xl leading-snug">{slip.text}</p>
+        <p
+          className="keeper-voice text-2xl leading-snug text-[#c6a6ff]"
+          style={{ textShadow: "0 0 10px rgb(198 166 255 / 0.75), 0 0 2px rgb(198 166 255 / 0.9)" }}
+        >
+          {slip.text}
+        </p>
         {allFound ? <p className="text-xl text-primary">{SLIP_COPY.all}</p> : null}
         <div>
-          <Button size="sm" autoFocus onClick={() => ref.current?.close()}>
+          <Button size="sm" autoFocus onClick={closeNow}>
             {SLIP_COPY.keep}
           </Button>
         </div>

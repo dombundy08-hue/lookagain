@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/8bit-card";
 import type { StageDef } from "@/game/stages";
 import { normalize } from "@/lib/sealed";
 import { useSlips } from "./slips";
+import { LoreMark } from "./Hint";
 import type { Progress } from "@/lib/progress";
 import { cn } from "@/lib/utils";
 
@@ -53,14 +54,16 @@ export function KeeperLine({ text, className }: { text: string; className?: stri
   );
 }
 
-/** Frame for every stage: optional eyebrow-free heading, Keeper intro, then the work. */
+/** Frame for every stage: optional heading, Keeper intro, then the work. `mark` hides a "?" secret on it. */
 export function StageShell({
   title,
   intro,
+  mark,
   children,
 }: {
   title?: string;
   intro?: string;
+  mark?: string;
   children: ReactNode;
 }) {
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -68,7 +71,8 @@ export function StageShell({
     headingRef.current?.focus();
   }, [title]);
   return (
-    <section className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 md:py-16">
+    <section className="relative mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 md:py-16">
+      {mark ? <LoreMark mark={mark} /> : null}
       {title ? (
         <h1 ref={headingRef} tabIndex={-1} className="retro text-base text-primary outline-none md:text-xl">
           {title}
@@ -177,56 +181,6 @@ export function GoodLine({ text, onNext, nextLabel = "Next" }: { text: string; o
       <Button ref={ref} onClick={onNext}>
         {nextLabel} <span aria-hidden="true">&#9654;</span>
       </Button>
-    </div>
-  );
-}
-
-/** Tape-counter clock. Counts down while running; calls onExpire once at zero. */
-export function TapeClock({
-  seconds,
-  running,
-  onExpire,
-}: {
-  seconds: number;
-  running: boolean;
-  onExpire: () => void;
-}) {
-  const [left, setLeft] = useState(seconds);
-  const expired = useRef(false);
-
-  useEffect(() => {
-    if (!running || left <= 0) return;
-    const t = window.setTimeout(() => setLeft((s) => s - 1), 1000);
-    return () => window.clearTimeout(t);
-  }, [running, left]);
-
-  useEffect(() => {
-    if (left <= 0 && !expired.current) {
-      expired.current = true;
-      onExpire();
-    }
-  }, [left, onExpire]);
-
-  const m = Math.floor(Math.max(left, 0) / 60);
-  const sec = Math.max(left, 0) % 60;
-  const urgent = left <= 10;
-  const announce = left === 60 || left === 30 || left === 10;
-  return (
-    <div className="flex items-center gap-4">
-      <div
-        role="timer"
-        className={cn(
-          "retro pixel-border bg-background px-4 py-3 text-base tabular-nums md:text-lg",
-          urgent ? "text-destructive [--pb:var(--destructive)]" : "text-primary",
-          urgent && running && "blink",
-        )}
-        aria-label={`${m} minutes ${sec} seconds left`}
-      >
-        {m}:{String(sec).padStart(2, "0")}
-      </div>
-      <span className="sr-only" aria-live="assertive">
-        {announce && running ? `${left} seconds left` : ""}
-      </span>
     </div>
   );
 }

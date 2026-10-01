@@ -1,11 +1,11 @@
-import { useRef } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Eye, Feather, RotateCcw, ScrollText, Volume2, VolumeX, X } from "lucide-react";
 
 import { Button } from "@/components/ui/8bit-button";
 import { DIFFICULTY_LOCKED, SLIPS } from "@/game/copy";
 import { MILESTONES, STAGE_BY_ID, STAGES } from "@/game/stages";
 import { cn } from "@/lib/utils";
-import { StarCount } from "./bonus";
+import { BonusDialog, StarCount } from "./bonus";
 import HuntTimeline from "./HuntTimeline";
 import { useSlips } from "./slips";
 
@@ -17,13 +17,20 @@ export default function TopBar({
   music,
   onToggleMusic,
   onStartOver,
+  below,
+  bonuses = [],
 }: {
   stageId: string;
   stars: number;
   music: boolean;
   onToggleMusic: () => void;
   onStartOver: () => void;
+  /** Extra row under the bar (the shared clock). */
+  below?: ReactNode;
+  /** Bonuses earned, re-openable from the tape log. */
+  bonuses?: string[];
 }) {
+  const [bonusOpen, setBonusOpen] = useState<"tape" | "file" | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
   const lastEyePress = useRef(0);
   const { find, found } = useSlips();
@@ -91,6 +98,8 @@ export default function TopBar({
         </div>
       </div>
 
+      {below}
+      {bonusOpen ? <BonusDialog kind={bonusOpen} onClose={() => setBonusOpen(null)} /> : null}
       <dialog
         ref={dialogRef}
         className="m-auto max-h-[90svh] w-[min(1100px,94vw)] overflow-auto bg-background text-foreground backdrop:bg-black/80"
@@ -110,6 +119,20 @@ export default function TopBar({
             <X aria-hidden="true" />
           </Button>
           <HuntTimeline className="py-10" />
+          {bonuses.length ? (
+            <div className="mx-auto flex max-w-3xl flex-wrap gap-4 px-4 pb-10">
+              {bonuses.includes("tape") ? (
+                <Button variant="secondary" size="sm" onClick={() => setBonusOpen("tape")}>
+                  Bonus Reel
+                </Button>
+              ) : null}
+              {bonuses.includes("file") ? (
+                <Button variant="secondary" size="sm" onClick={() => setBonusOpen("file")}>
+                  Extra File
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </dialog>
     </header>

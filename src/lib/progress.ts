@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import type { Difficulty } from "@/components/ui/8bit-difficulty-select";
 
-const KEY = "look-again:v1";
+const KEY = "look-again:v2";
 
 export interface Progress {
   started: boolean;
@@ -10,17 +10,32 @@ export interface Progress {
   difficulty: Difficulty | null;
   stars: string[];
   riddleIndex: number;
-  bonusHint: boolean;
+  /** Wrong answers in the opening riddles. Zero means hints are earned for the timed round. */
+  riddleMisses: number;
+  /** Shared clock, in milliseconds left. Null before the clock section starts. */
+  clockMs: number | null;
+  clockRunning: boolean;
+  /** Time left when the shared-clock section ended (ms). */
+  sectionLeftMs: number | null;
+  /** Clock value the timed WATCHER round starts (and restarts) from. */
+  recallStartMs: number | null;
+  /** True while a timed WATCHER attempt is under way (between "We're ready" and finish or rewind). */
+  recallLive: boolean;
+  /** How many times the WATCHER tape has rewound. Picks the question set. */
+  rewinds: number;
   recallIndex: number;
   recall: string[];
+  /** Bonuses earned from the clock: "tape" and/or "file". */
+  bonuses: string[];
   /** Normalized final word, kept on this device only, so a reload can reopen the tape. */
   finalKey: string | null;
-  /** Normalized secret code, same reason. */
-  secretKey: string | null;
-  timerOff: boolean;
-  /** Soundtrack on or off. On by default; it only starts after Press Play. */
+  /** Normalized codes that opened the recordings lock. */
+  unlocked: string[];
+  /** Normalized codes that opened the title-screen lock. */
+  titleUnlocked: string[];
+  /** Soundtrack on or off inside the game. The title screen always forces it on. */
   music: boolean;
-  /** Hidden slips found around the site. */
+  /** Hidden secrets found around the site. */
   slips: string[];
 }
 
@@ -30,12 +45,19 @@ export const FRESH: Progress = {
   difficulty: null,
   stars: [],
   riddleIndex: 0,
-  bonusHint: false,
+  riddleMisses: 0,
+  clockMs: null,
+  clockRunning: false,
+  sectionLeftMs: null,
+  recallStartMs: null,
+  recallLive: false,
+  rewinds: 0,
   recallIndex: 0,
   recall: [],
+  bonuses: [],
   finalKey: null,
-  secretKey: null,
-  timerOff: false,
+  unlocked: [],
+  titleUnlocked: [],
   music: true,
   slips: [],
 };
@@ -73,7 +95,7 @@ export function useProgress() {
     } catch {
       /* ignore */
     }
-    setProgress((p) => ({ ...FRESH, music: p.music, timerOff: p.timerOff }));
+    setProgress(() => ({ ...FRESH }));
   }, []);
 
   return { progress, update, reset };

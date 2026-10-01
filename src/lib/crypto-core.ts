@@ -114,7 +114,10 @@ export interface Sealed {
   salt: string;
   answers: Record<string, SealedAnswer[]>;
   transcript: SealedPassage;
-  secret: SealedPassage | null;
+  /** Recordings opened by codes typed after pressing "secret" inside a recording. */
+  secrets: SealedPassage[];
+  /** Opened only by the "secret" on the title screen. */
+  titleSecrets: SealedPassage[];
 }
 
 export async function sealAnswer(

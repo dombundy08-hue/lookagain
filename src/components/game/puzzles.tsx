@@ -1,16 +1,13 @@
-import { useCallback, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Hourglass, Lightbulb } from "lucide-react";
+import { Hourglass, Lightbulb, RotateCcw } from "lucide-react";
 
 import { Button } from "@/components/ui/8bit-button";
 import { FINAL_NUDGES, GOOD, NUDGES, RECALL_COPY } from "@/game/copy";
-import { STAGE_BY_ID } from "@/game/stages";
-import { Hint } from "./Hint";
+import type { PromptItem } from "@/game/stages";
+import { formatClock, useClock, useClockTime } from "@/lib/clock";
 import { check, normalize, openTranscript } from "@/lib/sealed";
-import { AnswerForm, Counter, GoodLine, KeeperLine, PromptCard, StageShell, TapeClock, type StageProps } from "./shared";
-
-const riddles = STAGE_BY_ID.riddles;
-const BONUS_HINT = riddles?.type === "riddles" ? riddles.hint : "";
+import { AnswerForm, Counter, GoodLine, KeeperLine, PromptCard, StageShell, type StageProps } from "./shared";
 
 export function RiddlesStage({ stage, progress, update, next }: StageProps<"riddles">) {
   const [solved, setSolved] = useState<string | null>(null);
@@ -18,14 +15,17 @@ export function RiddlesStage({ stage, progress, update, next }: StageProps<"ridd
   const finished = index >= stage.items.length;
 
   if (finished) {
+    const perfect = progress.riddleMisses === 0;
     return (
-      <StageShell title="Round One" intro={stage.doneLine}>
-        <PromptCard className="flex flex-col gap-4">
-          <p className="retro flex items-center gap-3 text-[10px] uppercase text-primary">
-            <Lightbulb className="size-4" aria-hidden="true" /> Bonus hint
-          </p>
-          <p className="text-2xl leading-snug">{stage.hint}</p>
-        </PromptCard>
+      <StageShell title="Round One" intro={perfect ? stage.perfectLine : stage.okLine} mark={stage.id}>
+        {perfect ? (
+          <PromptCard className="flex flex-col gap-3 [--pb:var(--primary)]">
+            <p className="retro flex items-center gap-3 text-[10px] uppercase text-primary">
+              <Lightbulb className="size-4" aria-hidden="true" /> Earned
+            </p>
+            <p className="text-2xl leading-snug">One hint on every question in the timed round.</p>
+          </PromptCard>
+        ) : null}
         <div>
           <Button onClick={next} autoFocus>
             Keep going <span aria-hidden="true">&#9654;</span>
@@ -37,7 +37,7 @@ export function RiddlesStage({ stage, progress, update, next }: StageProps<"ridd
 
   const item = stage.items[index];
   return (
-    <StageShell title="Round One" intro={index === 0 ? stage.intro : undefined}>
+    <StageShell title="Round One" intro={index === 0 ? stage.intro : undefined} mark={stage.id}>
       <PromptCard className="flex flex-col gap-6">
         <Counter index={index} total={stage.items.length} />
         <p className="text-3xl leading-snug md:text-4xl">{item.prompt}</p>
@@ -46,10 +46,7 @@ export function RiddlesStage({ stage, progress, update, next }: StageProps<"ridd
             text={`${GOOD} ${solved}.`}
             onNext={() => {
               setSolved(null);
-              update((p) => {
-                const riddleIndex = p.riddleIndex + 1;
-                return { riddleIndex, bonusHint: riddleIndex >= stage.items.length };
-              });
+              update((p) => ({ riddleIndex: p.riddleIndex + 1 }));
             }}
           />
         ) : (
@@ -60,27 +57,70 @@ export function RiddlesStage({ stage, progress, update, next }: StageProps<"ridd
             onSubmit={async (typed) => {
               const display = await check(item.id, typed);
               if (display) setSolved(display);
+              else update((p) => ({ riddleMisses: p.riddleMisses + 1 }));
               return Boolean(display);
             }}
           />
         )}
-        {!solved ? <Hint key={item.id} id={item.id} /> : null}
       </PromptCard>
     </StageShell>
   );
 }
 
-export function RecallStage({ stage, progress, update, next }: StageProps<"recall">) {
-  const [solved, setSolved] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
-  const [expired, setExpired] = useState(false);
-  const [attempt, setAttempt] = useState(0);
-  const index = progress.recallIndex;
-  const onExpire = useCallback(() => setExpired(true), []);
+/** An earned hint, in glowing ink. Only exists if all five opening riddles were right first try. */
+function EarnedHint({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex flex-col items-start gap-3">
+      <Button variant="secondary" size="sm" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+        <Lightbulb aria-hidden="true" /> {RECALL_COPY.hint}
+      </Button>
+      {open ? (
+        <p
+          role="note"
+          className="keeper-voice glitch-in border-l-2 border-[#c6a6ff] pl-4 text-xl leading-snug text-[#c6a6ff] md:text-2xl"
+          style={{ textShadow: "0 0 10px rgb(198 166 255 / 0.75), 0 0 2px rgb(198 166 255 / 0.9)" }}
+        >
+          {text}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
-  if (index >= stage.items.length) {
+/**
+ * The timed WATCHER round, on the shared clock: carry-over plus two minutes, plus twenty seconds
+ * per right answer. If the clock runs out, the tape rewinds to question one with a new set.
+ */
+export function RecallStage({ stage, progress, update, next }: StageProps<"recall">) {
+  const clock = useClock();
+  const { leftMs } = useClockTime();
+  const [solved, setSolved] = useState<string | null>(null);
+  const flooredFor = useRef<string | null>(null);
+
+  const hintsEarned = progress.riddleIndex >= 5 && progress.riddleMisses === 0;
+  const set: PromptItem[] = stage.sets[progress.rewinds % stage.sets.length];
+  const index = progress.recallIndex;
+  const item = set[index] as PromptItem | undefined;
+  const finished = !item;
+  const live = progress.recallLive;
+  const ranOut = live && !finished && !solved && !clock.running && (leftMs ?? 0) <= 0;
+
+  // A live attempt whose clock was paused (a reload) picks up where it left off.
+  useEffect(() => {
+    if (live && !finished && !clock.running && (leftMs ?? 0) > 0) clock.start(leftMs as number);
+  }, [live, finished, clock, leftMs]);
+
+  // A question with minSeconds (the Harlan one) tops the clock up to at least that much.
+  useEffect(() => {
+    if (!item?.minSeconds || !clock.running || flooredFor.current === `${progress.rewinds}-${item.id}`) return;
+    flooredFor.current = `${progress.rewinds}-${item.id}`;
+    clock.floor(item.minSeconds * 1000);
+  }, [item, clock, progress.rewinds]);
+
+  if (finished) {
     return (
-      <StageShell title="Round Two" intro="That's all of them. You can breathe now.">
+      <StageShell title="Round Two" intro="That's all of them. You can breathe now." mark={stage.id}>
         <div>
           <Button onClick={next} autoFocus>
             Continue <span aria-hidden="true">&#9654;</span>
@@ -90,24 +130,33 @@ export function RecallStage({ stage, progress, update, next }: StageProps<"recal
     );
   }
 
-  const item = stage.items[index];
-  const seconds = item.seconds ?? 60;
+  const startFrom = progress.recallStartMs ?? stage.startBonus * 1000;
 
-  // Before any clock starts: the warning. Again before a question with its own note.
-  if (!ready) {
-    const first = index === 0;
+  // Before the clock starts, and after every rewind: the warning screen.
+  if (!live) {
     return (
-      <StageShell title="Round Two" intro={first ? stage.intro : undefined}>
+      <StageShell title="Round Two" intro={progress.rewinds === 0 ? stage.intro : undefined} mark={stage.id}>
         <PromptCard className="flex flex-col gap-6 [--pb:var(--destructive)]">
           <p className="retro flex items-center gap-3 text-[10px] uppercase text-destructive">
             <Hourglass className="size-4" aria-hidden="true" /> Timed
           </p>
-          <KeeperLine key={`${index}-warn`} text={item.note ?? stage.warning} />
+          <KeeperLine
+            key={`warn-${progress.rewinds}`}
+            text={progress.rewinds === 0 ? stage.warning : `${RECALL_COPY.rewound(progress.rewinds)} ${stage.warning}`}
+          />
           <p className="text-xl text-muted-foreground">
-            Question {index + 1} of {stage.items.length}. Clock: {seconds >= 60 ? `${seconds / 60} minute${seconds === 60 ? "" : "s"}` : `${seconds} seconds`}.
+            Seven questions. You start with {formatClock(startFrom)} on the clock.
+            {hintsEarned ? " You earned a hint on every question." : ""}
           </p>
           <div>
-            <Button onClick={() => setReady(true)} autoFocus>
+            <Button
+              autoFocus
+              onClick={() => {
+                flooredFor.current = null;
+                clock.start(startFrom);
+                update({ recallLive: true });
+              }}
+            >
               {RECALL_COPY.ready} <span aria-hidden="true">&#9654;</span>
             </Button>
           </div>
@@ -116,58 +165,73 @@ export function RecallStage({ stage, progress, update, next }: StageProps<"recal
     );
   }
 
+  if (ranOut) {
+    const more = progress.rewinds + 1 < stage.maxRewinds;
+    return (
+      <StageShell title="Round Two" mark={stage.id}>
+        <PromptCard className="flex flex-col items-start gap-6 [--pb:var(--destructive)]">
+          <p className="keeper-voice glitch-in text-3xl text-destructive">{RECALL_COPY.ranOut}</p>
+          <p className="text-xl text-muted-foreground">
+            Back to question one. New questions, same word at the end.
+            {more ? "" : " The tape has rewound as far as it goes, so the questions start over from the first set."}
+          </p>
+          <Button
+            autoFocus
+            onClick={() => {
+              setSolved(null);
+              update((p) => ({ rewinds: p.rewinds + 1, recallIndex: 0, recall: [], recallLive: false }));
+            }}
+          >
+            <RotateCcw aria-hidden="true" /> {RECALL_COPY.rewind}
+          </Button>
+        </PromptCard>
+      </StageShell>
+    );
+  }
+
   return (
-    <StageShell title="Round Two">
-      {progress.bonusHint ? (
-        <details className="text-xl text-muted-foreground">
-          <summary className="retro cursor-pointer text-[10px] uppercase text-primary">Bonus hint</summary>
-          <p className="mt-3">{BONUS_HINT}</p>
-        </details>
-      ) : null}
+    <StageShell title="Round Two" mark={stage.id}>
       <PromptCard className="flex flex-col gap-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <Counter index={index} total={stage.items.length} />
-          <TapeClock key={`${index}-${attempt}`} seconds={seconds} running={!solved && !expired} onExpire={onExpire} />
+          <Counter index={index} total={set.length} />
+          {progress.rewinds > 0 ? (
+            <span className="retro text-[8px] text-muted-foreground">Rewind {progress.rewinds}</span>
+          ) : null}
         </div>
+        {item.note ? <p className="text-xl text-destructive">{item.note}</p> : null}
         <p className="text-3xl leading-snug md:text-4xl">{item.prompt}</p>
         {solved ? (
           <GoodLine
             text={GOOD}
             onNext={() => {
               setSolved(null);
-              setExpired(false);
-              setAttempt(0);
-              // A question with its own note gets its own warning screen first.
-              setReady(!stage.items[index + 1]?.note);
-              update((p) => ({ recallIndex: p.recallIndex + 1, recall: [...p.recall, solved] }));
+              const isLast = index + 1 >= set.length;
+              if (isLast) clock.stop();
+              update((p) => ({
+                recallIndex: p.recallIndex + 1,
+                recall: [...p.recall, solved],
+                recallLive: isLast ? false : p.recallLive,
+              }));
             }}
           />
-        ) : expired ? (
-          <div className="flex flex-col items-start gap-4" role="status" aria-live="polite">
-            <p className="keeper-voice text-2xl">{RECALL_COPY.ranOut}</p>
-            <Button
-              autoFocus
-              onClick={() => {
-                setExpired(false);
-                setAttempt((a) => a + 1);
-              }}
-            >
-              {RECALL_COPY.rewind}
-            </Button>
-          </div>
         ) : (
-          <AnswerForm
-            key={`${item.id}-${attempt}`}
-            label="Your answer"
-            nudges={NUDGES}
-            onSubmit={async (typed) => {
-              const display = await check(item.id, typed);
-              if (display) setSolved(display);
-              return Boolean(display);
-            }}
-          />
+          <>
+            <AnswerForm
+              key={`${item.id}-${progress.rewinds}`}
+              label="Your answer"
+              nudges={NUDGES}
+              onSubmit={async (typed) => {
+                const display = await check(item.id, typed);
+                if (display) {
+                  clock.add(stage.perCorrect * 1000);
+                  setSolved(display);
+                }
+                return Boolean(display);
+              }}
+            />
+            {hintsEarned && item.hint ? <EarnedHint key={item.id} text={item.hint} /> : null}
+          </>
         )}
-        {!solved ? <Hint key={item.id} id={item.id} /> : null}
       </PromptCard>
     </StageShell>
   );
@@ -227,7 +291,7 @@ export function AcrosticStage({ stage, progress, next }: StageProps<"acrostic">)
   const reduce = useReducedMotion();
   const words = progress.recall;
   return (
-    <StageShell intro={stage.intro}>
+    <StageShell intro={stage.intro} mark={stage.id}>
       <div className="self-start">
         <Stack words={words} framed />
       </div>
@@ -247,7 +311,7 @@ export function AcrosticStage({ stage, progress, next }: StageProps<"acrostic">)
 
 export function FinalStage({ stage, progress, update, next }: StageProps<"final">) {
   return (
-    <StageShell title="The Last Question" intro={stage.intro}>
+    <StageShell title="The Last Question" intro={stage.intro} mark={stage.id}>
       {progress.recall.length > 0 ? (
         <div className="opacity-80">
           <Stack words={progress.recall} compact />
@@ -266,7 +330,6 @@ export function FinalStage({ stage, progress, update, next }: StageProps<"final"
             return true;
           }}
         />
-        <Hint id={stage.id} />
       </PromptCard>
     </StageShell>
   );

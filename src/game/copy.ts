@@ -1,12 +1,10 @@
 // The Keeper's voice. No em dashes anywhere in this file.
 
-export const PLAYERS = ["Zoe", "Evie", "Dane"] as const;
-
 export const HERO_SUBTITLE =
   "Zoe. Evie. Dane. You found the book, so you already know how this works. Look once. Then look again.";
 
 export const WELCOME =
-  "Hello, Zoe. Hello, Evie. Hello, Dane. Welcome back to Curiosity Hour. Before we start, the show needs to know how brave you are.";
+  "Hello, Zoe. Hello, Evie. Hello, Dane. Welcome back to Curiosity Hour. Before we start, the show needs to know how brave you are. And remember: the show keeps score. Do well now, and it pays you back later.";
 
 export const DIFFICULTY_REPLY = {
   easy: "Easy. That's sweet. There is no easy on this show.",
@@ -30,17 +28,14 @@ export const NUDGES = [
 export const GOOD = "Good.";
 
 export const REWIND_COPY = {
-  timerLabel: "Tape counter",
-  timerOff: "Timer off",
-  timerOn: "Timer on",
-  ranOut: "The tape ran out. That's alright. Rewind and try again, or skip it.",
-  done: "There it is. Good. You earned a star.",
+  done: "There it is. Good. Ten seconds back on the clock.",
   wrongPick: "That line comes later.",
 };
 
 export const SPOT_COPY = {
   done: "You saw it. Most people never do. You earned a star.",
   wrong: "That one is the same as before. Look again.",
+  gone: "Gone. Most people never even saw it change.",
 };
 
 export const FINAL_NUDGES = [
@@ -53,41 +48,75 @@ export const SECRET_COPY = {
   label: "Code from the tape",
   notYet: "That doesn't fit. Not yet.",
   back: "Back to the recording",
+  unlocked: "Unlocked",
 };
 
 export const START_OVER_CONFIRM = "Start over from the beginning? Everything you've solved will be forgotten.";
 
+export const CLOCK_COPY = {
+  start: "Start the clock",
+  ranOut: "The clock ran out. No bonus this time. Keep going: the puzzles still need finishing.",
+  added: (s: number) => `+${s} seconds`,
+};
+
+export const RESULT_COPY = {
+  none: "The clock beat you this time. No bonus. The show remembers that too.",
+  tape: "You beat the clock with time to spare. Something was waiting for you.",
+  file: "Fifteen seconds to spare. That's two things.",
+  carry: (s: string) => `You carry ${s} into the next round, plus two more minutes.`,
+  open: "Play it",
+  read: "Read it",
+};
+
 export const RECALL_COPY = {
   ready: "We're ready",
-  ranOut: "The tape ran out. Rewind and try again.",
-  rewind: "Rewind",
+  ranOut: "The tape ran out.",
+  rewind: "Rewind to the start",
+  rewound: (n: number) => `Rewind ${n}. New questions. Same word at the end.`,
+  hint: "Hint",
 };
 
 export const TUNER_COPY = {
   label: "Tuning dial",
-  locked: "You found the station. You earned a star.",
+  locked: "You found the station. Ten seconds back on the clock.",
   strength: "Signal",
 };
 
 export const ORDER_COPY = {
   check: "Check the files",
   close: (n: number, total: number) => `${n} of ${total} are where they belong. Look again.`,
-  done: "Every file back in its drawer. Good. You earned a star.",
+  done: "Every file back in its drawer. Good. Ten seconds back on the clock.",
   help: "Drag a card, or select it and use the arrow keys.",
 };
 
 /**
- * Hidden slips: things the Keeper let slip without meaning to.
+ * Hidden secrets: lore the Keeper let slip without meaning to. Every one counts toward the feather.
  * DRAFT wording. Zach: check these against canon before the hunt.
- * Where each one hides (production note, never shown):
+ *
+ * Tiny "?" marks (mark = the stage they sit on), easiest first, hardest last:
+ *   difficulty, log, riddles, clock-start, tuner, rewind, order, clock-result, recall, acrostic, final, tape, home
+ * Special finds (no "?"):
  *   ch3     title screen, the "CH 3" in the corner
  *   eyes    title screen, tap while the red eyes are open
  *   twice   top bar, the eye logo pressed twice quickly
  *   ink     tape log, invisible ink found by moving the light over the dark panel
  *   red     tape log, the red question mark
- *   said    typing "look again" into any answer box
+ *   said    typing "look again" into any answer box that isn't asking for it
  */
-export const SLIPS: { id: string; text: string }[] = [
+export const SLIPS: { id: string; text: string; mark?: string }[] = [
+  { id: "m-difficulty", mark: "difficulty", text: "We never had difficulty settings on the show. Harlan said kids don't need them. Harlan was right about most things." },
+  { id: "m-log", mark: "log", text: "I used to know exactly how many tapes there were. I counted them twice. The number was different the second time." },
+  { id: "m-riddles", mark: "riddles", text: "My first riddle on the air was about a clock. The audience laughed before I finished it. I never found out who told them the answer." },
+  { id: "m-clock-start", mark: "clock-start", text: "Harlan ran the booth clock. He said I always ran long. I said the clock ran short. One of us was right." },
+  { id: "m-tuner", mark: "tuner", text: "He used to sit on top of the studio radio while we tuned it. He'd turn his head toward the static, like he heard something in it." },
+  { id: "m-rewind", mark: "rewind", text: "I wrote the catchphrase in one night. I don't remember writing it. I only remember reading it back the next morning." },
+  { id: "m-order", mark: "order", text: "Harlan filed the segment notes every week. One week there was an extra page in the stack, in my handwriting. I don't write like that." },
+  { id: "m-clock-result", mark: "clock-result", text: "Corporate wanted everything faster. Faster tapes, faster shows. Something else was never in a hurry." },
+  { id: "m-recall", mark: "recall", text: "Some nights I play the old tapes back and I'm saying things I never said. Small things. A word here, a word there." },
+  { id: "m-acrostic", mark: "acrostic", text: "I always liked words that hide inside other words. Lately, something hides inside mine." },
+  { id: "m-final", mark: "final", text: "I drew him in the corner of the first page because that's where he was. The next night he wasn't in the corner anymore." },
+  { id: "m-tape", mark: "tape", text: "If I sound different on this one, it's because I am. A little more every time." },
+  { id: "m-home", mark: "home", text: "Every room in this house has a door I left open. Some of them I didn't open myself." },
   { id: "ch3", text: "Turn the dial slowly. Things hide between stations." },
   { id: "eyes", text: "Did you see that too? I always told myself it was the studio lights." },
   { id: "twice", text: "Twice. Always twice. Once to see it. Once to be seen." },
@@ -97,15 +126,37 @@ export const SLIPS: { id: string; text: string }[] = [
 ];
 
 export const SLIP_COPY = {
-  found: (n: number, total: number) => `Slip ${n} of ${total}`,
+  found: (n: number, total: number) => `Secret ${n} of ${total}`,
   keep: "Keep it",
-  all: "You found every slip. He never meant to leave them. You earned a star.",
-  log: "Slips found",
+  all: "You found every secret. He never meant to leave them. You earned a star.",
+  log: "Secrets found",
   inkHint: "Some ink only shows under the right light.",
 };
 
-/** The catchphrase on the title screen. The word "secret" in it is the way back in. */
+/** The catchphrase on the title screen. The word "secret" in it opens its own lock. */
 export const CATCHPHRASE = ["Look again. The ", "secret", "'s never hiding. It's just waiting to be noticed."] as const;
 
-/** The last and best-hidden hint: the final digit of the tape counter on the title screen. */
-export const HOME_CLUE = "The word works from here too. You never have to play it all again to come back.";
+/** Earned by finishing the shared-clock section with 10+ seconds left. DRAFT, Zach to check canon. */
+export const BONUS_TAPE = {
+  title: "Bonus Reel",
+  header: "CURIOSITY HOUR. BONUS REEL, NEVER AIRED. Speaker: KEEPER.",
+  body: [
+    "Fast hands. I like that.",
+    "We used to have a game at the end of every show. The quickest kid in the audience got a prize. Something small. Something shiny.",
+    "They always said thank you. Every single one of them. I should have noticed how quiet it got after they said thank you.",
+    "Keep your hands fast. Keep your eyes faster.",
+  ],
+  audio: "media/bonus-reel.mp3",
+};
+
+/** Earned by finishing the shared-clock section with 15+ seconds left. DRAFT, Zach to check canon. */
+export const BONUS_FILE = {
+  title: "Extra File",
+  header: "CURIOSITY HOUR. SEGMENT NOTES, STUDIO B. Supervisor: Harlan Vance. Distribution: Production only.",
+  body: [
+    "Owl segment pulled from the rundown, effective immediately. Host's request.",
+    "Do not ask him about it. Do not move the perch.",
+    "Note for the booth: Tuesday's tape has eleven seconds on it that nobody remembers recording. Do not air. Do not erase. Bring it to me directly.",
+    "Signed, H.V.",
+  ],
+};

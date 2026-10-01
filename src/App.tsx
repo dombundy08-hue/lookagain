@@ -3,7 +3,15 @@ import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/8bit-button";
 import { PixelRocketHero } from "@/components/ui/pixel-rocket-voyager";
-import { OrderStage, RewindStage, SpotStage, TunerStage } from "@/components/game/bonus";
+import {
+  ClockResultStage,
+  ClockStartStage,
+  OrderStage,
+  RewindStage,
+  SpotStage,
+  TunerStage,
+} from "@/components/game/bonus";
+import { HomeMark } from "@/components/game/Hint";
 import { AcrosticStage, FinalStage, RecallStage, RiddlesStage } from "@/components/game/puzzles";
 import type { StageProps } from "@/components/game/shared";
 import { SlipProvider, useSlips } from "@/components/game/slips";
@@ -16,13 +24,13 @@ import {
   TapeStage,
 } from "@/components/game/story";
 import TopBar from "@/components/game/TopBar";
-import { HomeHint } from "@/components/game/Hint";
-import { CATCHPHRASE, HERO_SUBTITLE, START_OVER_CONFIRM } from "@/game/copy";
-import { STAGE_BY_ID, type StageType } from "@/game/stages";
+import { CATCHPHRASE, CLOCK_COPY, HERO_SUBTITLE, START_OVER_CONFIRM } from "@/game/copy";
+import { CLOCK_STAGES, STAGE_BY_ID, type StageType } from "@/game/stages";
 import { AUDIO_EVENT, isAudioBlocked, restartMusic, setMusicEnabled, startMusic } from "@/lib/audio";
+import { ClockProvider, SharedClockBar, useClockTime } from "@/lib/clock";
 import { useProgress, type Progress } from "@/lib/progress";
 
-const THEME_URL = `${import.meta.env.BASE_URL}media/theme.mp3`;
+const THEME_URL = [`${import.meta.env.BASE_URL}media/theme-1.mp3`, `${import.meta.env.BASE_URL}media/theme-2.mp3`];
 
 // The engine: one renderer per stage type. New stages are config entries in game/stages.ts.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -30,9 +38,11 @@ const RENDERERS: Record<StageType, ComponentType<StageProps<any>>> = {
   difficulty: DifficultyStage,
   log: LogStage,
   riddles: RiddlesStage,
+  "clock-start": ClockStartStage,
   tuner: TunerStage,
   rewind: RewindStage,
   order: OrderStage,
+  "clock-result": ClockResultStage,
   recall: RecallStage,
   acrostic: AcrosticStage,
   spot: SpotStage,
@@ -44,6 +54,12 @@ const RENDERERS: Record<StageType, ComponentType<StageProps<any>>> = {
 
 export default function App() {
   const { progress, update, reset } = useProgress();
+  // Bumped on Start over so the clock starts fresh (and the title screen comes back).
+  const [epoch, setEpoch] = useState(0);
+  const resetAll = useCallback(() => {
+    reset();
+    setEpoch((e) => e + 1);
+  }, [reset]);
 
   const onSlipFound = useCallback(
     (id: string, allFound: boolean) =>
@@ -54,11 +70,31 @@ export default function App() {
     [update],
   );
 
+  const onClockSave = useCallback(
+    (ms: number | null, running: boolean) => update({ clockMs: ms, clockRunning: running }),
+    [update],
+  );
+
   return (
     <SlipProvider found={progress.slips} onFound={onSlipFound}>
-      <Game progress={progress} update={update} reset={reset} />
+      <ClockProvider
+        key={epoch}
+        initialMs={progress.clockMs}
+        initialRunning={progress.clockRunning}
+        onSave={onClockSave}
+      >
+        <Game progress={progress} update={update} reset={resetAll} />
+      </ClockProvider>
     </SlipProvider>
   );
+}
+
+function ClockRow({ stageId, recallLive }: { stageId: string; recallLive: boolean }) {
+  const { leftMs } = useClockTime();
+  const onClockStage = (CLOCK_STAGES as readonly string[]).includes(stageId);
+  if (!(onClockStage || (stageId === "recall" && recallLive))) return null;
+  const ranOut = onClockStage && leftMs !== null && leftMs <= 0;
+  return <SharedClockBar note={ranOut ? CLOCK_COPY.ranOut : undefined} />;
 }
 
 function Game({
@@ -72,19 +108,6 @@ function Game({
 }) {
   const [onTitle, setOnTitle] = useState(true);
   const [audioBlocked, setAudioBlocked] = useState(isAudioBlocked);
-
-  // The title screen always has sound. No toggle there; muting only exists once they're inside,
-  // and every return to the title (or a fresh visit) switches it back on.
-  useEffect(() => {
-    if (onTitle) update({ music: true });
-  }, [onTitle, update]);
-
-  useEffect(() => {
-    const sync = () => setAudioBlocked(isAudioBlocked());
-    sync();
-    window.addEventListener(AUDIO_EVENT, sync);
-    return () => window.removeEventListener(AUDIO_EVENT, sync);
-  }, []);
   const secretRef = useRef<HTMLDialogElement>(null);
   const { find } = useSlips();
 
@@ -101,6 +124,12 @@ function Game({
     if (stage.next) go(stage.next);
   }, [stage.next, go]);
 
+  // The title screen always has sound. Muting only exists once they're inside,
+  // and every return to the title (or a fresh visit) switches it back on.
+  useEffect(() => {
+    if (onTitle) update({ music: true });
+  }, [onTitle, update]);
+
   useEffect(() => {
     setMusicEnabled(progress.music);
   }, [progress.music]);
@@ -109,6 +138,13 @@ function Game({
   // so the song is loaded now and starts on the first touch anywhere.
   useEffect(() => {
     startMusic(THEME_URL);
+  }, []);
+
+  useEffect(() => {
+    const sync = () => setAudioBlocked(isAudioBlocked());
+    sync();
+    window.addEventListener(AUDIO_EVENT, sync);
+    return () => window.removeEventListener(AUDIO_EVENT, sync);
   }, []);
 
   const startOver = () => {
@@ -159,7 +195,7 @@ function Game({
             </button>
           }
           onEyesSeen={() => find("eyes")}
-          counterTail={<HomeHint />}
+          counterTail={<HomeMark />}
           secondary={
             progress.started ? (
               <Button variant="ghost" size="sm" onClick={startOver}>
@@ -169,14 +205,17 @@ function Game({
           }
         />
         {audioBlocked ? (
-          <p className="retro blink pointer-events-none fixed right-6 bottom-6 z-30 text-[10px] text-muted-foreground" aria-hidden="true">
+          <p
+            className="retro blink pointer-events-none fixed right-6 bottom-6 z-30 text-[10px] text-muted-foreground"
+            aria-hidden="true"
+          >
             Tap anywhere
           </p>
         ) : null}
         <dialog
           ref={secretRef}
-          aria-label="The lock"
-          className="m-auto w-[min(40rem,94vw)] bg-background p-0 text-foreground backdrop:bg-black/85"
+          aria-label="A secret in plain sight"
+          className="m-auto max-h-[92svh] w-[min(40rem,94vw)] overflow-auto bg-background p-0 text-foreground backdrop:bg-black/85"
         >
           <div className="pixel-border relative m-1 flex flex-col gap-6 p-6 pt-14">
             <Button
@@ -188,7 +227,12 @@ function Game({
             >
               <X aria-hidden="true" />
             </Button>
-            <SecretBox secretKey={progress.secretKey} onUnlock={(code) => update({ secretKey: code })} />
+            <p className="keeper-voice text-2xl">A secret in plain sight.</p>
+            <SecretBox
+              lock="title"
+              opened={progress.titleUnlocked}
+              onUnlock={(code) => update((p) => ({ titleUnlocked: [...p.titleUnlocked, code] }))}
+            />
           </div>
         </dialog>
       </main>
@@ -207,6 +251,8 @@ function Game({
           update((p) => ({ music: !p.music }));
         }}
         onStartOver={startOver}
+        below={<ClockRow stageId={stage.id} recallLive={progress.recallLive} />}
+        bonuses={progress.bonuses}
       />
       <main key={stage.id}>
         <Renderer stage={stage} progress={progress} update={update} next={next} go={go} />

@@ -59,9 +59,8 @@ function playPassage() {
   const slowed = !firstPassage && Math.random() < 0.25;
   const rate = slowed ? 0.93 : 1;
   const offset = firstPassage ? 0 : Math.random() * Math.max(0, song.duration - 50);
-  const length = firstPassage
-    ? Math.min(song.duration, 95)
-    : Math.min(song.duration - offset, 35 + Math.random() * 55);
+  // The first pass is always the whole song from the very beginning.
+  const length = firstPassage ? song.duration : Math.min(song.duration - offset, 35 + Math.random() * 55);
   firstPassage = false;
 
   const src = c.createBufferSource();
@@ -119,11 +118,59 @@ function playBreak() {
   timer = window.setTimeout(playPassage, seconds * 1000);
 }
 
-async function load(url: string) {
+/** Index of the first/last sample louder than near-silence, so the halves meet without a gap. */
+function soundBounds(buf: AudioBuffer): [number, number] {
+  const d = buf.getChannelData(0);
+  const floor = 0.004;
+  let start = 0;
+  while (start < d.length && Math.abs(d[start]) < floor) start++;
+  let end = d.length - 1;
+  while (end > start && Math.abs(d[end]) < floor) end--;
+  return [start, end + 1];
+}
+
+/**
+ * The song comes in two halves (the first one stops short). Join them into one buffer:
+ * trim the silence at the seam and cross-fade 80 ms so it plays as a single piece.
+ */
+function joinHalves(c: AudioContext, parts: AudioBuffer[]): AudioBuffer {
+  if (parts.length === 1) return parts[0];
+  const rate = parts[0].sampleRate;
+  const fade = Math.round(rate * 0.08);
+  const channels = Math.max(...parts.map((p) => p.numberOfChannels));
+  const trimmed = parts.map((p, i) => {
+    const [s, e] = soundBounds(p);
+    return { buf: p, start: i === 0 ? 0 : s, end: i === parts.length - 1 ? p.length : e };
+  });
+  const total = trimmed.reduce((n, t) => n + (t.end - t.start), 0) - fade * (parts.length - 1);
+  const out = c.createBuffer(channels, total, rate);
+  for (let ch = 0; ch < channels; ch++) {
+    const o = out.getChannelData(ch);
+    let at = 0;
+    trimmed.forEach((t, i) => {
+      const src = t.buf.getChannelData(Math.min(ch, t.buf.numberOfChannels - 1));
+      const len = t.end - t.start;
+      for (let k = 0; k < len; k++) {
+        let v = src[t.start + k];
+        // equal-power fade in over the overlap (not on the first half)
+        if (i > 0 && k < fade) v *= Math.sin((k / fade) * (Math.PI / 2));
+        // equal-power fade out over the overlap (not on the last half)
+        if (i < trimmed.length - 1 && k >= len - fade) v *= Math.cos(((k - (len - fade)) / fade) * (Math.PI / 2));
+        o[at + k] += v;
+      }
+      at += len - fade;
+    });
+  }
+  return out;
+}
+
+async function load(urls: string[]) {
   if (!ctx) return;
-  const res = await fetch(url);
-  const bytes = await res.arrayBuffer();
-  song = await ctx.decodeAudioData(bytes);
+  const c = ctx;
+  const parts = await Promise.all(
+    urls.map(async (u) => c.decodeAudioData(await (await fetch(u)).arrayBuffer())),
+  );
+  song = joinHalves(c, parts);
 }
 
 let looping = false;
@@ -179,7 +226,7 @@ export function isAudioBlocked() {
 }
 
 /** Call as early as possible: on page load, and again from any button press. */
-export function startMusic(url: string) {
+export function startMusic(urls: string[]) {
   try {
     if (!ctx) {
       ctx = new AudioContext();
@@ -209,7 +256,7 @@ export function startMusic(url: string) {
     }
     running = true;
     applyLevel(1.5);
-    loading ??= load(url).catch(() => {
+    loading ??= load(urls).catch(() => {
       running = false; // no file or no decoder: stay silent
     });
     void loading.then(beginIfReady);
@@ -225,6 +272,11 @@ export function startMusic(url: string) {
 export function setMusicEnabled(on: boolean) {
   enabled = on;
   applyLevel();
+}
+
+/** Turn the music down under a voice (and back up). */
+export function duckMusic(on: boolean) {
+  setDucked(on);
 }
 
 function setDucked(on: boolean) {
@@ -260,6 +312,11 @@ if (import.meta.env.DEV) {
     voices: live.length,
     level: master?.gain.value,
   });
+  // Dev only: silence the test browser without touching game state.
+  (window as unknown as Record<string, unknown>).__mute = () => {
+    enabled = false;
+    applyLevel(0.05);
+  };
 }
 
 /** Back to the very start of the song (used when the game starts over). */

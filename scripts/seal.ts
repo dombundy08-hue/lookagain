@@ -33,15 +33,19 @@ for (const [itemId, entries] of Object.entries(src.answers)) {
 
 const transcript = await sealPassage(src.transcript.key, src.transcript.text);
 
-let secret = null;
-if (src.secret && src.secret.code) {
-  secret = await sealPassage(
-    src.secret.code,
-    JSON.stringify({ title: src.secret.title, body: src.secret.body }),
-  );
+// Each lock can hold many codes. Every code opens its own recording.
+async function sealLock(entries) {
+  const out = [];
+  for (const e of entries ?? []) {
+    if (!e || !e.code) continue;
+    out.push(await sealPassage(e.code, JSON.stringify({ title: e.title, body: e.body, audio: e.audio ?? null })));
+  }
+  return out;
 }
+const secrets = await sealLock(src.secrets);
+const titleSecrets = await sealLock(src.titleSecrets);
 
-const sealed = { v: 1, salt, answers, transcript, secret };
+const sealed = { v: 1, salt, answers, transcript, secrets, titleSecrets };
 
 // Self-check before writing: every accepted answer must open, and a wrong one must not.
 for (const [itemId, entries] of Object.entries(src.answers)) {
@@ -62,5 +66,5 @@ if ((await openPassage(transcript, "wrong")) !== null) throw new Error("Transcri
 
 writeFileSync(resolve(root, "src/game/sealed.json"), JSON.stringify(sealed) + "\n");
 console.log(
-  `Sealed ${Object.keys(answers).length} answer sets, transcript, secret: ${secret ? "yes" : "not set"}.`,
+  `Sealed ${Object.keys(answers).length} answers, transcript, ${secrets.length} recording code(s), ${titleSecrets.length} title code(s).`,
 );
