@@ -1,0 +1,7 @@
+node_modules
+dist
+*.local
+.DS_Store
+# Answers, transcript and tape code in plain text. Never commit.
+private/*
+!private/secrets.example.json
