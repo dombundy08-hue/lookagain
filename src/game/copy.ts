@@ -160,3 +160,26 @@ export const BONUS_FILE = {
     "Signed, H.V.",
   ],
 };
+
+/**
+ * Small puzzles on the last five secrets. Answers are sealed (ids "slip-<secret id>").
+ * kind: "cipher" uses the Flag Clock card; "mirror" shows the clue flipped; others are plain.
+ */
+export const SLIP_PUZZLES: Record<string, { kind: "cipher" | "scramble" | "mirror" | "count"; prompt: string; clue: string }> = {
+  "m-recall": { kind: "cipher", prompt: "Some of my notes are in code. Get out the Flag Clock card.", clue: "8:00   9:00   4:00   5:00" },
+  "m-acrostic": { kind: "scramble", prompt: "These letters fell out of order. Put them back.", clue: "T  C  E  R  E  S" },
+  "m-final": { kind: "mirror", prompt: "This one was written the wrong way round. What does it say?", clue: "NOTICED" },
+  "m-tape": {
+    kind: "count",
+    prompt: "How many times do I say the word look? Only the word look.",
+    clue: "Look. Look again. Look closer. Don't look away. Look at me. Looking is not enough.",
+  },
+  "m-home": { kind: "cipher", prompt: "The last of my notes. The card, one more time.", clue: "12:00   1:00   7:05   8:05" },
+};
+
+export const BLACKLIGHT_COPY = {
+  how: "Move your finger or the mouse over the dark. It only shows where the light is.",
+  keys: "Or press Enter to sweep the light across.",
+  solve: "Open it",
+  wrong: "That's not it. Look again.",
+};
