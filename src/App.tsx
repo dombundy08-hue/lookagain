@@ -171,7 +171,8 @@ function Game({
                     startMusic(THEME_URL);
                     secretRef.current?.showModal();
                   }}
-                  className="cursor-pointer text-inherit decoration-primary decoration-2 underline-offset-4 hover:underline focus-visible:underline"
+                  // No hover colour or underline here: only the pointer gives it away.
+                  className="cursor-pointer text-inherit"
                 >
                   {CATCHPHRASE[1]}
                 </button>

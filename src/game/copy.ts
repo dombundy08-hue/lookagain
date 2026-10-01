@@ -123,7 +123,7 @@ export const SLIPS: { id: string; text: string; mark?: string }[] = [
   { id: "m-acrostic", mark: "acrostic", text: "I always liked words that hide inside other words. Lately, something hides inside mine." },
   { id: "m-final", mark: "final", text: "I drew him in the corner of the first page because that's where he was. The next night he wasn't in the corner anymore." },
   { id: "m-tape", mark: "tape", text: "If I sound different on this one, it's because I am. A little more every time." },
-  { id: "m-home", mark: "home", text: "Every room in this house has a door I left open. Some of them I didn't open myself." },
+  { id: "m-home", mark: "home", text: "The answer is death." },
 ];
 
 export const SLIP_COPY = {
@@ -180,7 +180,7 @@ export const SLIP_PUZZLES: Record<string, { kind: "cipher" | "scramble" | "mirro
   "m-home": {
     kind: "cipher",
     prompt: "The last of my notes. The card, one more time. I never wanted to write this one.",
-    clue: "4:00   5:00   1:00   8:05   8:00",
+    clue: "12:00   1:00   7:05   8:05",
   },
 };
 
