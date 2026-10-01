@@ -126,7 +126,52 @@ async function load(url: string) {
   song = await ctx.decodeAudioData(bytes);
 }
 
-/** Call from a click handler. Safe to call more than once. */
+let looping = false;
+
+/** Starts the passage/break loop once the song is decoded and the browser lets sound play. */
+function beginIfReady() {
+  if (looping || !running || !song || !ctx || ctx.state !== "running" || document.hidden) return;
+  looping = true;
+  playPassage();
+}
+
+/** Stops the loop cleanly (tab hidden): no stacked passages waiting when it comes back. */
+function haltLoop() {
+  looping = false;
+  window.clearTimeout(timer);
+  live.forEach((n) => {
+    try {
+      n.stop();
+    } catch {
+      /* already stopped */
+    }
+  });
+  live = [];
+}
+
+let unlockArmed = false;
+
+/**
+ * Browsers refuse sound until the visitor touches the page. So the song is loaded straight away,
+ * and the very first tap, click or key press anywhere starts it.
+ */
+function armUnlock() {
+  if (unlockArmed) return;
+  unlockArmed = true;
+  const events = ["pointerdown", "touchend", "keydown", "click"] as const;
+  const unlock = () => {
+    if (!ctx) return;
+    void ctx.resume().then(() => {
+      if (ctx?.state !== "running") return;
+      events.forEach((e) => window.removeEventListener(e, unlock, true));
+      unlockArmed = false;
+      beginIfReady();
+    });
+  };
+  events.forEach((e) => window.addEventListener(e, unlock, true));
+}
+
+/** Call as early as possible: on page load, and again from any button press. */
 export function startMusic(url: string) {
   try {
     if (!ctx) {
@@ -137,26 +182,31 @@ export function startMusic(url: string) {
       musicBus = ctx.createGain();
       musicBus.connect(master);
       noise = makeNoise(ctx);
+      ctx.onstatechange = beginIfReady;
       document.addEventListener("visibilitychange", () => {
         if (!ctx) return;
-        if (document.hidden) void ctx.suspend();
-        else if (running) void ctx.resume();
+        if (document.hidden) {
+          haltLoop();
+          void ctx.suspend();
+        } else if (running) {
+          void ctx.resume().then(beginIfReady);
+        }
       });
       // Any video or audio on the page plays over a quiet bed.
       document.addEventListener("play", () => setDucked(true), true);
       document.addEventListener("pause", () => setDucked(false), true);
       document.addEventListener("ended", () => setDucked(false), true);
     }
-    if (ctx.state === "suspended") void ctx.resume();
-    applyLevel(1.5);
-    if (running) return;
     running = true;
+    applyLevel(1.5);
     loading ??= load(url).catch(() => {
       running = false; // no file or no decoder: stay silent
     });
-    void loading.then(() => {
-      if (running && song && live.length === 0) playPassage();
-    });
+    void loading.then(beginIfReady);
+    if (ctx.state !== "running") {
+      void ctx.resume().then(beginIfReady, () => {});
+      armUnlock();
+    }
   } catch {
     running = false;
   }
@@ -204,13 +254,5 @@ if (import.meta.env.DEV) {
 
 export function stopMusic() {
   running = false;
-  window.clearTimeout(timer);
-  live.forEach((n) => {
-    try {
-      n.stop();
-    } catch {
-      /* already stopped */
-    }
-  });
-  live = [];
+  haltLoop();
 }

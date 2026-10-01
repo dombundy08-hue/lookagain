@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
-import { X } from "lucide-react";
+import { Volume2, VolumeX, X } from "lucide-react";
 
 import { Button } from "@/components/ui/8bit-button";
 import { PixelRocketHero } from "@/components/ui/pixel-rocket-voyager";
@@ -90,6 +90,12 @@ function Game({
     setMusicEnabled(progress.music);
   }, [progress.music]);
 
+  // Music from the moment the site opens. Browsers hold sound until the first tap,
+  // so the song is loaded now and starts on the first touch anywhere.
+  useEffect(() => {
+    startMusic(THEME_URL);
+  }, []);
+
   const startOver = () => {
     if (!window.confirm(START_OVER_CONFIRM)) return;
     reset();
@@ -145,6 +151,19 @@ function Game({
             ) : null
           }
         />
+        <button
+          type="button"
+          onClick={() => {
+            startMusic(THEME_URL);
+            update((p) => ({ music: !p.music }));
+          }}
+          aria-pressed={progress.music}
+          aria-label="Music"
+          className="retro fixed right-6 bottom-6 z-30 flex items-center gap-2 text-[10px] text-muted-foreground hover:text-foreground"
+        >
+          {progress.music ? <Volume2 className="size-4" aria-hidden="true" /> : <VolumeX className="size-4" aria-hidden="true" />}
+          {progress.music ? "Sound on" : "Sound off"}
+        </button>
         <dialog
           ref={secretRef}
           aria-label="The lock"
