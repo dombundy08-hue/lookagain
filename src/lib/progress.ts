@@ -18,7 +18,10 @@ export interface Progress {
   /** Normalized secret code, same reason. */
   secretKey: string | null;
   timerOff: boolean;
-  hiss: boolean;
+  /** Soundtrack on or off. On by default; it only starts after Press Play. */
+  music: boolean;
+  /** Hidden slips found around the site. */
+  slips: string[];
 }
 
 export const FRESH: Progress = {
@@ -33,7 +36,8 @@ export const FRESH: Progress = {
   finalKey: null,
   secretKey: null,
   timerOff: false,
-  hiss: false,
+  music: true,
+  slips: [],
 };
 
 function load(): Progress {
@@ -69,7 +73,7 @@ export function useProgress() {
     } catch {
       /* ignore */
     }
-    setProgress((p) => ({ ...FRESH, hiss: p.hiss, timerOff: p.timerOff }));
+    setProgress((p) => ({ ...FRESH, music: p.music, timerOff: p.timerOff }));
   }, []);
 
   return { progress, update, reset };

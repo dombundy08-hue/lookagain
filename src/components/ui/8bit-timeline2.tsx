@@ -10,6 +10,10 @@ export interface TimelineStep {
   title: string;
   /** Look Again addition: how the checkpoint is drawn. Defaults to "done". */
   state?: TimelineState;
+  /** Look Again addition: makes the checkpoint pressable. */
+  onSelect?: () => void;
+  /** Accessible name for a pressable checkpoint. */
+  selectLabel?: string;
 }
 
 interface Timeline2Props {
@@ -88,15 +92,20 @@ export default function Timeline2({
                 aria-current={state === "current" ? "step" : undefined}
               >
                 {/* Checkpoint */}
-                <div
-                  className={cn(
+                {(() => {
+                  const cls = cn(
                     "retro relative z-10 mb-4 flex size-14 items-center justify-center border-2 font-bold text-xs",
                     checkpointByState[state],
                     state === "danger" && "shadow-[0_0_18px_rgb(224_72_58/0.45)]",
-                  )}
-                >
-                  {step.icon}
-                </div>
+                  );
+                  return step.onSelect ? (
+                    <button type="button" className={cn(cls, "cursor-default")} onClick={step.onSelect} aria-label={step.selectLabel}>
+                      {step.icon}
+                    </button>
+                  ) : (
+                    <div className={cls}>{step.icon}</div>
+                  );
+                })()}
 
                 <h3
                   className={cn(

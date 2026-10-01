@@ -29,6 +29,14 @@ npm run dev
 
 Answers are normalized before checking: case, punctuation, spaces, a leading "the/a/my", and one plural "s" are ignored.
 
+## Hidden slips
+
+Six things the Keeper let slip are hidden around the site. Where each one hides is listed in a comment above `SLIPS` in `src/game/copy.ts`. They are optional; finding all six earns a star.
+
+## Soundtrack
+
+`public/media/theme.mp3` plays from the moment Press Play is pressed: random stretches of the song, short breaks of tape hiss, and now and then a slowed, warbling pass. The speaker button in the top bar mutes it. Any video or audio on the page plays over a quiet bed.
+
 ## Media (optional)
 
 Drop these into `public/media/` and they appear automatically. Missing files show a "NO SIGNAL" frame or are hidden.

@@ -1,16 +1,27 @@
-import { useCallback, useEffect, useState, type ComponentType } from "react";
+import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
+import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/8bit-button";
 import { PixelRocketHero } from "@/components/ui/pixel-rocket-voyager";
-import { RewindStage, SpotStage } from "@/components/game/bonus";
+import { OrderStage, RewindStage, SpotStage, TunerStage } from "@/components/game/bonus";
 import { AcrosticStage, FinalStage, RecallStage, RiddlesStage } from "@/components/game/puzzles";
 import type { StageProps } from "@/components/game/shared";
-import { DifficultyStage, LogStage, RevealStage, SecretStage, TapeStage } from "@/components/game/story";
+import { SlipProvider, useSlips } from "@/components/game/slips";
+import {
+  DifficultyStage,
+  LogStage,
+  RevealStage,
+  SecretBox,
+  SecretStage,
+  TapeStage,
+} from "@/components/game/story";
 import TopBar from "@/components/game/TopBar";
-import { HERO_SUBTITLE, START_OVER_CONFIRM } from "@/game/copy";
+import { CATCHPHRASE, HERO_SUBTITLE, START_OVER_CONFIRM } from "@/game/copy";
 import { STAGE_BY_ID, type StageType } from "@/game/stages";
-import { setHiss } from "@/lib/hiss";
-import { useProgress } from "@/lib/progress";
+import { setMusicEnabled, startMusic } from "@/lib/audio";
+import { useProgress, type Progress } from "@/lib/progress";
+
+const THEME_URL = `${import.meta.env.BASE_URL}media/theme.mp3`;
 
 // The engine: one renderer per stage type. New stages are config entries in game/stages.ts.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,7 +29,9 @@ const RENDERERS: Record<StageType, ComponentType<StageProps<any>>> = {
   difficulty: DifficultyStage,
   log: LogStage,
   riddles: RiddlesStage,
+  tuner: TunerStage,
   rewind: RewindStage,
+  order: OrderStage,
   recall: RecallStage,
   acrostic: AcrosticStage,
   spot: SpotStage,
@@ -30,7 +43,35 @@ const RENDERERS: Record<StageType, ComponentType<StageProps<any>>> = {
 
 export default function App() {
   const { progress, update, reset } = useProgress();
+
+  const onSlipFound = useCallback(
+    (id: string, allFound: boolean) =>
+      update((p) => ({
+        slips: p.slips.includes(id) ? p.slips : [...p.slips, id],
+        stars: allFound && !p.stars.includes("slips") ? [...p.stars, "slips"] : p.stars,
+      })),
+    [update],
+  );
+
+  return (
+    <SlipProvider found={progress.slips} onFound={onSlipFound}>
+      <Game progress={progress} update={update} reset={reset} />
+    </SlipProvider>
+  );
+}
+
+function Game({
+  progress,
+  update,
+  reset,
+}: {
+  progress: Progress;
+  update: StageProps["update"];
+  reset: () => void;
+}) {
   const [onTitle, setOnTitle] = useState(true);
+  const secretRef = useRef<HTMLDialogElement>(null);
+  const { find } = useSlips();
 
   const stage = STAGE_BY_ID[progress.stageId] ?? STAGE_BY_ID.difficulty;
 
@@ -46,8 +87,8 @@ export default function App() {
   }, [stage.next, go]);
 
   useEffect(() => {
-    setHiss(progress.hiss && !onTitle);
-  }, [progress.hiss, onTitle]);
+    setMusicEnabled(progress.music);
+  }, [progress.music]);
 
   const startOver = () => {
     if (!window.confirm(START_OVER_CONFIRM)) return;
@@ -61,12 +102,41 @@ export default function App() {
         <PixelRocketHero
           headline="Look Again"
           kicker="A Curiosity Hour lost episode"
-          subtitle={<p>{HERO_SUBTITLE}</p>}
+          subtitle={
+            <>
+              <p>{HERO_SUBTITLE}</p>
+              <p className="mt-4 text-xl">
+                {CATCHPHRASE[0]}
+                <button
+                  type="button"
+                  onClick={() => {
+                    startMusic(THEME_URL);
+                    secretRef.current?.showModal();
+                  }}
+                  className="cursor-pointer text-inherit decoration-primary decoration-2 underline-offset-4 hover:underline focus-visible:underline"
+                >
+                  {CATCHPHRASE[1]}
+                </button>
+                {CATCHPHRASE[2]}
+              </p>
+            </>
+          }
           ctaLabel={progress.started ? "Resume Tape" : "Press Play"}
           onStart={() => {
+            startMusic(THEME_URL);
             update({ started: true });
             setOnTitle(false);
           }}
+          channel={
+            <button
+              type="button"
+              className="retro cursor-default text-[10px] text-muted-foreground"
+              onClick={() => find("ch3")}
+            >
+              CH 3
+            </button>
+          }
+          onEyesSeen={() => find("eyes")}
           secondary={
             progress.started ? (
               <Button variant="ghost" size="sm" onClick={startOver}>
@@ -75,6 +145,24 @@ export default function App() {
             ) : null
           }
         />
+        <dialog
+          ref={secretRef}
+          aria-label="The lock"
+          className="m-auto w-[min(40rem,94vw)] bg-background p-0 text-foreground backdrop:bg-black/85"
+        >
+          <div className="pixel-border relative m-1 flex flex-col gap-6 p-6 pt-14">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-3 right-3 px-2"
+              onClick={() => secretRef.current?.close()}
+              aria-label="Close"
+            >
+              <X aria-hidden="true" />
+            </Button>
+            <SecretBox secretKey={progress.secretKey} onUnlock={(code) => update({ secretKey: code })} />
+          </div>
+        </dialog>
       </main>
     );
   }
@@ -85,8 +173,11 @@ export default function App() {
       <TopBar
         stageId={stage.id}
         stars={progress.stars.length}
-        hiss={progress.hiss}
-        onToggleHiss={() => update((p) => ({ hiss: !p.hiss }))}
+        music={progress.music}
+        onToggleMusic={() => {
+          startMusic(THEME_URL);
+          update((p) => ({ music: !p.music }));
+        }}
         onStartOver={startOver}
       />
       <main key={stage.id}>

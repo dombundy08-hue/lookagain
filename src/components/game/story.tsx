@@ -181,21 +181,31 @@ export function TapeStage({ stage, progress, go }: StageProps<"tape">) {
   );
 }
 
-export function SecretStage({ stage, progress, update, go }: StageProps<"secret">) {
+/** The code lock. Used on the secret stage and from the title screen. */
+export function SecretBox({
+  secretKey,
+  onUnlock,
+  footer,
+}: {
+  secretKey: string | null;
+  onUnlock: (normalizedCode: string) => void;
+  footer?: ReactNode;
+}) {
   const [payload, setPayload] = useState<SecretPayload | null>(null);
 
   useEffect(() => {
-    if (!progress.secretKey) return;
+    if (!secretKey) return;
     let live = true;
-    openSecret(progress.secretKey).then((p) => live && setPayload(p));
+    openSecret(secretKey).then((p) => live && setPayload(p));
     return () => {
       live = false;
     };
-  }, [progress.secretKey]);
+  }, [secretKey]);
 
   if (payload) {
     return (
-      <StageShell title={payload.title}>
+      <div className="flex flex-col gap-6">
+        <h2 className="retro text-base text-primary md:text-xl">{payload.title}</h2>
         <PromptCard className="flex flex-col gap-5">
           {payload.body.split(/\n\s*\n/).map((p, i) => (
             <p key={i} className="keeper-voice glitch-in text-2xl leading-snug">
@@ -203,17 +213,13 @@ export function SecretStage({ stage, progress, update, go }: StageProps<"secret"
             </p>
           ))}
         </PromptCard>
-        <div>
-          <Button variant="secondary" onClick={() => go("tape")}>
-            {SECRET_COPY.back}
-          </Button>
-        </div>
-      </StageShell>
+        {footer}
+      </div>
     );
   }
 
   return (
-    <StageShell intro={stage.intro}>
+    <div className="flex flex-col gap-6">
       <PromptCard className="flex flex-col gap-6">
         <p className="retro flex items-center gap-3 text-[10px] uppercase text-primary">
           <Lock className="size-4" aria-hidden="true" /> Locked
@@ -225,17 +231,31 @@ export function SecretStage({ stage, progress, update, go }: StageProps<"secret"
           onSubmit={async (typed) => {
             const p = await openSecret(typed);
             if (!p) return false;
-            update({ secretKey: normalize(typed) });
+            onUnlock(normalize(typed));
             setPayload(p);
             return true;
           }}
         />
       </PromptCard>
-      <div>
-        <Button variant="ghost" size="sm" onClick={() => go("tape")}>
-          {SECRET_COPY.back}
-        </Button>
-      </div>
+      {footer}
+    </div>
+  );
+}
+
+export function SecretStage({ stage, progress, update, go }: StageProps<"secret">) {
+  return (
+    <StageShell intro={stage.intro}>
+      <SecretBox
+        secretKey={progress.secretKey}
+        onUnlock={(code) => update({ secretKey: code })}
+        footer={
+          <div>
+            <Button variant="ghost" size="sm" onClick={() => go("tape")}>
+              {SECRET_COPY.back}
+            </Button>
+          </div>
+        }
+      />
     </StageShell>
   );
 }

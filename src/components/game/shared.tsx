@@ -3,6 +3,8 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/8bit-button";
 import { Card } from "@/components/ui/8bit-card";
 import type { StageDef } from "@/game/stages";
+import { normalize } from "@/lib/sealed";
+import { useSlips } from "./slips";
 import type { Progress } from "@/lib/progress";
 import { cn } from "@/lib/utils";
 
@@ -91,13 +93,16 @@ export function AnswerForm({
   onSubmit,
   nudges,
   submitLabel = "Enter",
+  disabled = false,
 }: {
   label: string;
   onSubmit: (typed: string) => Promise<boolean>;
   nudges: readonly string[];
   submitLabel?: string;
+  disabled?: boolean;
 }) {
   const id = useId();
+  const { find, found } = useSlips();
   const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
   const [misses, setMisses] = useState(0);
@@ -106,11 +111,18 @@ export function AnswerForm({
 
   async function handle(e: React.FormEvent) {
     e.preventDefault();
-    if (!value.trim() || busy) return;
+    if (!value.trim() || busy || disabled) return;
     setBusy(true);
     const ok = await onSubmit(value);
     setBusy(false);
     if (!ok) {
+      // Hidden slip: saying the catchphrase into any box that isn't asking for it.
+      if (normalize(value) === "lookagain" && !found.includes("said")) {
+        find("said");
+        setMessage("The box heard you.");
+        setMisses((m) => m + 1);
+        return;
+      }
       setMessage(nudges[misses % nudges.length]);
       setMisses((m) => m + 1);
       inputRef.current?.select();
@@ -128,6 +140,7 @@ export function AnswerForm({
           id={id}
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          disabled={disabled}
           autoFocus
           autoComplete="off"
           autoCapitalize="none"
@@ -137,7 +150,7 @@ export function AnswerForm({
           placeholder="type here"
           aria-describedby={message ? `${id}-msg` : undefined}
         />
-        <Button type="submit" disabled={busy || !value.trim()}>
+        <Button type="submit" disabled={busy || disabled || !value.trim()}>
           {busy ? "..." : submitLabel}
         </Button>
       </div>
@@ -161,6 +174,56 @@ export function GoodLine({ text, onNext, nextLabel = "Next" }: { text: string; o
       <Button ref={ref} onClick={onNext}>
         {nextLabel} <span aria-hidden="true">&#9654;</span>
       </Button>
+    </div>
+  );
+}
+
+/** Tape-counter clock. Counts down while running; calls onExpire once at zero. */
+export function TapeClock({
+  seconds,
+  running,
+  onExpire,
+}: {
+  seconds: number;
+  running: boolean;
+  onExpire: () => void;
+}) {
+  const [left, setLeft] = useState(seconds);
+  const expired = useRef(false);
+
+  useEffect(() => {
+    if (!running || left <= 0) return;
+    const t = window.setTimeout(() => setLeft((s) => s - 1), 1000);
+    return () => window.clearTimeout(t);
+  }, [running, left]);
+
+  useEffect(() => {
+    if (left <= 0 && !expired.current) {
+      expired.current = true;
+      onExpire();
+    }
+  }, [left, onExpire]);
+
+  const m = Math.floor(Math.max(left, 0) / 60);
+  const sec = Math.max(left, 0) % 60;
+  const urgent = left <= 10;
+  const announce = left === 60 || left === 30 || left === 10;
+  return (
+    <div className="flex items-center gap-4">
+      <div
+        role="timer"
+        className={cn(
+          "retro pixel-border bg-background px-4 py-3 text-base tabular-nums md:text-lg",
+          urgent ? "text-destructive [--pb:var(--destructive)]" : "text-primary",
+          urgent && running && "blink",
+        )}
+        aria-label={`${m} minutes ${sec} seconds left`}
+      >
+        {m}:{String(sec).padStart(2, "0")}
+      </div>
+      <span className="sr-only" aria-live="assertive">
+        {announce && running ? `${left} seconds left` : ""}
+      </span>
     </div>
   );
 }

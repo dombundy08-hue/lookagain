@@ -21,6 +21,10 @@ export interface PixelRocketHeroProps {
   ctaLabel?: string;
   onStart?: () => void;
   secondary?: React.ReactNode;
+  /** Replaces the channel label in the corner. */
+  channel?: React.ReactNode;
+  /** Called when someone taps the screen while the eyes in the dark are open. */
+  onEyesSeen?: () => void;
 }
 
 // --- Main Hero Component ---
@@ -31,8 +35,11 @@ export const PixelRocketHero = ({
   ctaLabel = "Press Play",
   onStart,
   secondary,
+  channel,
+  onEyesSeen,
 }: PixelRocketHeroProps) => {
   const reduce = useReducedMotion();
+  const eyesOpen = useRef(false);
   const textControls = useAnimation();
   const buttonControls = useAnimation();
 
@@ -48,9 +55,14 @@ export const PixelRocketHero = ({
   }, [textControls, buttonControls, reduce]);
 
   return (
-    <div className="relative flex min-h-svh w-full flex-col items-center justify-center overflow-hidden bg-background">
-      <PixelVoyagerCanvas />
-      <HeroNav />
+    <div
+      className="relative flex min-h-svh w-full flex-col items-center justify-center overflow-hidden bg-background"
+      onPointerDown={() => {
+        if (eyesOpen.current) onEyesSeen?.();
+      }}
+    >
+      <PixelVoyagerCanvas eyesOpen={eyesOpen} />
+      <HeroNav channel={channel} />
       <div className="relative z-10 mt-24 px-4 text-center md:mt-28">
         <div
           aria-hidden="true"
@@ -105,7 +117,7 @@ export const PixelRocketHero = ({
 };
 
 // --- Navigation Component ---
-const HeroNav = () => {
+const HeroNav = ({ channel }: { channel?: React.ReactNode }) => {
   const reduce = useReducedMotion();
   return (
     <motion.nav
@@ -119,7 +131,7 @@ const HeroNav = () => {
           <Eye className="size-5 text-primary" aria-hidden="true" />
           <span className="retro text-[10px] text-foreground md:text-xs">Curiosity Hour</span>
         </div>
-        <span className="retro text-[10px] text-muted-foreground">CH 3</span>
+        {channel ?? <span className="retro text-[10px] text-muted-foreground">CH 3</span>}
       </div>
     </motion.nav>
   );
@@ -133,7 +145,7 @@ const RecBadge = () => (
 );
 
 // --- Three.js Canvas Component ---
-const PixelVoyagerCanvas = () => {
+const PixelVoyagerCanvas = ({ eyesOpen }: { eyesOpen: React.MutableRefObject<boolean> }) => {
   const mountRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -225,7 +237,9 @@ const PixelVoyagerCanvas = () => {
       cassette.add(reel);
     }
     cassette.scale.setScalar(1.4);
-    cassette.position.set(0, 9, -4);
+    // Rest near the top of the screen whatever its height: 80% of the visible half-height at z = -4.
+    const restY = () => Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * (camera.position.z + 4) * 0.8;
+    cassette.position.set(0, restY(), -4);
     scene.add(cassette);
 
     // --- The treasure: pixel coins ---
@@ -271,7 +285,7 @@ const PixelVoyagerCanvas = () => {
       const elapsed = clock.getElapsedTime();
 
       // Rests above the title; drifts toward the pointer without crossing the text.
-      target.set(pointer.x * 9, 9 + pointer.y * 2 + Math.sin(elapsed * 0.6) * 0.5, -4);
+      target.set(pointer.x * 9, restY() + pointer.y * 1.5 + Math.sin(elapsed * 0.6) * 0.4, -4);
       cassette.position.lerp(target, 0.03);
       cassette.rotation.y = (target.x - cassette.position.x) * 0.08 + Math.sin(elapsed * 0.3) * 0.15;
       cassette.rotation.x = -(target.y - cassette.position.y) * 0.08;
@@ -285,6 +299,7 @@ const PixelVoyagerCanvas = () => {
       // Every ~19 seconds the eyes open for about a second.
       const cycle = elapsed % 19;
       eyeMat.opacity = cycle > 16 && cycle < 17.4 ? Math.sin(((cycle - 16) / 1.4) * Math.PI) * 0.85 : 0;
+      eyesOpen.current = eyeMat.opacity > 0.2;
 
       composer.render();
     };
@@ -313,7 +328,7 @@ const PixelVoyagerCanvas = () => {
       renderer.dispose();
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement);
     };
-  }, []);
+  }, [eyesOpen]);
 
   return <div ref={mountRef} className="absolute inset-0 z-0" />;
 };

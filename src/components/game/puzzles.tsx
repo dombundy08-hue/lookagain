@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
-import { Lightbulb } from "lucide-react";
+import { Hourglass, Lightbulb } from "lucide-react";
 
 import { Button } from "@/components/ui/8bit-button";
-import { FINAL_NUDGES, GOOD, NUDGES } from "@/game/copy";
+import { FINAL_NUDGES, GOOD, NUDGES, RECALL_COPY } from "@/game/copy";
 import { STAGE_BY_ID } from "@/game/stages";
 import { check, normalize, openTranscript } from "@/lib/sealed";
-import { AnswerForm, Counter, GoodLine, KeeperLine, PromptCard, StageShell, type StageProps } from "./shared";
+import { AnswerForm, Counter, GoodLine, KeeperLine, PromptCard, StageShell, TapeClock, type StageProps } from "./shared";
 
 const riddles = STAGE_BY_ID.riddles;
 const BONUS_HINT = riddles?.type === "riddles" ? riddles.hint : "";
@@ -70,11 +70,15 @@ export function RiddlesStage({ stage, progress, update, next }: StageProps<"ridd
 
 export function RecallStage({ stage, progress, update, next }: StageProps<"recall">) {
   const [solved, setSolved] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+  const [expired, setExpired] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const index = progress.recallIndex;
+  const onExpire = useCallback(() => setExpired(true), []);
 
   if (index >= stage.items.length) {
     return (
-      <StageShell title="Round Two" intro="That's all of them.">
+      <StageShell title="Round Two" intro="That's all of them. You can breathe now.">
         <div>
           <Button onClick={next} autoFocus>
             Continue <span aria-hidden="true">&#9654;</span>
@@ -85,8 +89,33 @@ export function RecallStage({ stage, progress, update, next }: StageProps<"recal
   }
 
   const item = stage.items[index];
+  const seconds = item.seconds ?? 60;
+
+  // Before any clock starts: the warning. Again before a question with its own note.
+  if (!ready) {
+    const first = index === 0;
+    return (
+      <StageShell title="Round Two" intro={first ? stage.intro : undefined}>
+        <PromptCard className="flex flex-col gap-6 [--pb:var(--destructive)]">
+          <p className="retro flex items-center gap-3 text-[10px] uppercase text-destructive">
+            <Hourglass className="size-4" aria-hidden="true" /> Timed
+          </p>
+          <KeeperLine key={`${index}-warn`} text={item.note ?? stage.warning} />
+          <p className="text-xl text-muted-foreground">
+            Question {index + 1} of {stage.items.length}. Clock: {seconds >= 60 ? `${seconds / 60} minute${seconds === 60 ? "" : "s"}` : `${seconds} seconds`}.
+          </p>
+          <div>
+            <Button onClick={() => setReady(true)} autoFocus>
+              {RECALL_COPY.ready} <span aria-hidden="true">&#9654;</span>
+            </Button>
+          </div>
+        </PromptCard>
+      </StageShell>
+    );
+  }
+
   return (
-    <StageShell title="Round Two" intro={index === 0 ? stage.intro : undefined}>
+    <StageShell title="Round Two">
       {progress.bonusHint ? (
         <details className="text-xl text-muted-foreground">
           <summary className="retro cursor-pointer text-[10px] uppercase text-primary">Bonus hint</summary>
@@ -94,19 +123,39 @@ export function RecallStage({ stage, progress, update, next }: StageProps<"recal
         </details>
       ) : null}
       <PromptCard className="flex flex-col gap-6">
-        <Counter index={index} total={stage.items.length} />
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <Counter index={index} total={stage.items.length} />
+          <TapeClock key={`${index}-${attempt}`} seconds={seconds} running={!solved && !expired} onExpire={onExpire} />
+        </div>
         <p className="text-3xl leading-snug md:text-4xl">{item.prompt}</p>
         {solved ? (
           <GoodLine
             text={GOOD}
             onNext={() => {
               setSolved(null);
+              setExpired(false);
+              setAttempt(0);
+              // A question with its own note gets its own warning screen first.
+              setReady(!stage.items[index + 1]?.note);
               update((p) => ({ recallIndex: p.recallIndex + 1, recall: [...p.recall, solved] }));
             }}
           />
+        ) : expired ? (
+          <div className="flex flex-col items-start gap-4" role="status" aria-live="polite">
+            <p className="keeper-voice text-2xl">{RECALL_COPY.ranOut}</p>
+            <Button
+              autoFocus
+              onClick={() => {
+                setExpired(false);
+                setAttempt((a) => a + 1);
+              }}
+            >
+              {RECALL_COPY.rewind}
+            </Button>
+          </div>
         ) : (
           <AnswerForm
-            key={item.id}
+            key={`${item.id}-${attempt}`}
             label="Your answer"
             nudges={NUDGES}
             onSubmit={async (typed) => {

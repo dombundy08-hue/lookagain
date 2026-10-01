@@ -1,36 +1,51 @@
 import { useRef } from "react";
-import { Eye, RotateCcw, ScrollText, Volume2, VolumeX, X } from "lucide-react";
+import { Eye, Feather, RotateCcw, ScrollText, Volume2, VolumeX, X } from "lucide-react";
 
 import { Button } from "@/components/ui/8bit-button";
-import { DIFFICULTY_LOCKED } from "@/game/copy";
+import { DIFFICULTY_LOCKED, SLIPS } from "@/game/copy";
 import { MILESTONES, STAGE_BY_ID, STAGES } from "@/game/stages";
 import { cn } from "@/lib/utils";
 import { StarCount } from "./bonus";
 import HuntTimeline from "./HuntTimeline";
+import { useSlips } from "./slips";
 
 const order = STAGES.map((s) => s.id);
 
 export default function TopBar({
   stageId,
   stars,
-  hiss,
-  onToggleHiss,
+  music,
+  onToggleMusic,
   onStartOver,
 }: {
   stageId: string;
   stars: number;
-  hiss: boolean;
-  onToggleHiss: () => void;
+  music: boolean;
+  onToggleMusic: () => void;
   onStartOver: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const lastEyePress = useRef(0);
+  const { find, found } = useSlips();
   const at = order.indexOf(stageId);
 
   return (
     <header className="sticky top-0 z-40 border-b-2 border-border bg-background/95 backdrop-blur-sm">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
         <div className="flex items-center gap-3">
-          <Eye className="size-5 text-primary" aria-hidden="true" />
+          <button
+            type="button"
+            className="cursor-default"
+            aria-label="Curiosity Hour"
+            onClick={() => {
+              // Look twice: two presses close together.
+              const now = Date.now();
+              if (now - lastEyePress.current < 450) find("twice");
+              lastEyePress.current = now;
+            }}
+          >
+            <Eye className="size-5 text-primary" aria-hidden="true" />
+          </button>
           <span className="retro text-[10px]">Curiosity Hour</span>
         </div>
 
@@ -61,11 +76,14 @@ export default function TopBar({
         <div className="flex items-center gap-4">
           <span className="retro hidden text-[8px] text-destructive md:inline">{DIFFICULTY_LOCKED}</span>
           <StarCount count={stars} />
+          <span className="retro flex items-center gap-2 text-[10px] text-muted-foreground" aria-label={`${found.length} of ${SLIPS.length} slips found`}>
+            <Feather className="size-4" aria-hidden="true" /> {found.length}
+          </span>
           <Button variant="ghost" size="sm" className="px-2" onClick={() => dialogRef.current?.showModal()} aria-label="Tape log">
             <ScrollText aria-hidden="true" />
           </Button>
-          <Button variant="ghost" size="sm" className="px-2" onClick={onToggleHiss} aria-pressed={hiss} aria-label="Tape hiss">
-            {hiss ? <Volume2 aria-hidden="true" /> : <VolumeX aria-hidden="true" />}
+          <Button variant="ghost" size="sm" className="px-2" onClick={onToggleMusic} aria-pressed={music} aria-label="Music">
+            {music ? <Volume2 aria-hidden="true" /> : <VolumeX aria-hidden="true" />}
           </Button>
           <Button variant="ghost" size="sm" className="px-2" onClick={onStartOver} aria-label="Start over">
             <RotateCcw aria-hidden="true" />

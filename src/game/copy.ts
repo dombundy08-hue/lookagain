@@ -56,3 +56,53 @@ export const SECRET_COPY = {
 };
 
 export const START_OVER_CONFIRM = "Start over from the beginning? Everything you've solved will be forgotten.";
+
+export const RECALL_COPY = {
+  ready: "We're ready",
+  ranOut: "The tape ran out. Rewind and try again.",
+  rewind: "Rewind",
+};
+
+export const TUNER_COPY = {
+  label: "Tuning dial",
+  locked: "You found the station. You earned a star.",
+  strength: "Signal",
+};
+
+export const ORDER_COPY = {
+  check: "Check the files",
+  close: (n: number, total: number) => `${n} of ${total} are where they belong. Look again.`,
+  done: "Every file back in its drawer. Good. You earned a star.",
+  help: "Drag a card, or select it and use the arrow keys.",
+};
+
+/**
+ * Hidden slips: things the Keeper let slip without meaning to.
+ * DRAFT wording. Zach: check these against canon before the hunt.
+ * Where each one hides (production note, never shown):
+ *   ch3     title screen, the "CH 3" in the corner
+ *   eyes    title screen, tap while the red eyes are open
+ *   twice   top bar, the eye logo pressed twice quickly
+ *   ink     tape log, invisible ink found by moving the light over the dark panel
+ *   red     tape log, the red question mark
+ *   said    typing "look again" into any answer box
+ */
+export const SLIPS: { id: string; text: string }[] = [
+  { id: "ch3", text: "Turn the dial slowly. Things hide between stations." },
+  { id: "eyes", text: "Did you see that too? I always told myself it was the studio lights." },
+  { id: "twice", text: "Twice. Always twice. Once to see it. Once to be seen." },
+  { id: "ink", text: "If you're reading this with a light, put it down for a minute. Some things notice light." },
+  { id: "red", text: "Not yet. I'm not ready to tell you what's at the end." },
+  { id: "said", text: "You said it. Everyone says it, sooner or later." },
+];
+
+export const SLIP_COPY = {
+  found: (n: number, total: number) => `Slip ${n} of ${total}`,
+  keep: "Keep it",
+  all: "You found every slip. He never meant to leave them. You earned a star.",
+  log: "Slips found",
+  inkHint: "Some ink only shows under the right light.",
+};
+
+/** The catchphrase on the title screen. The word "secret" in it is the way back in. */
+export const CATCHPHRASE = ["Look again. The ", "secret", "'s never hiding. It's just waiting to be noticed."] as const;
