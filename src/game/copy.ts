@@ -104,9 +104,16 @@ export const ORDER_COPY = {
  *   said    typing "look again" into any answer box that isn't asking for it
  */
 export const SLIPS: { id: string; text: string; mark?: string }[] = [
+  // Fixed order. The journal and every pop-up number them this way, whatever order they are found in.
   { id: "m-difficulty", mark: "difficulty", text: "We never had difficulty settings on the show. Harlan said kids don't need them. Harlan was right about most things." },
   { id: "m-log", mark: "log", text: "I used to know exactly how many tapes there were. I counted them twice. The number was different the second time." },
+  { id: "red", text: "Not yet. I'm not ready to tell you what's at the end." },
+  { id: "ink", text: "If you're reading this with a light, put it down for a minute. Some things notice light." },
   { id: "m-riddles", mark: "riddles", text: "My first riddle on the air was about a clock. The audience laughed before I finished it. I never found out who told them the answer." },
+  { id: "said", text: "You said it. Everyone says it, sooner or later." },
+  { id: "twice", text: "Twice. Always twice. Once to see it. Once to be seen." },
+  { id: "ch3", text: "Turn the dial slowly. Things hide between stations." },
+  { id: "eyes", text: "Did you see that too? I always told myself it was the studio lights." },
   { id: "m-clock-start", mark: "clock-start", text: "Harlan ran the booth clock. He said I always ran long. I said the clock ran short. One of us was right." },
   { id: "m-tuner", mark: "tuner", text: "He used to sit on top of the studio radio while we tuned it. He'd turn his head toward the static, like he heard something in it." },
   { id: "m-rewind", mark: "rewind", text: "I wrote the catchphrase in one night. I don't remember writing it. I only remember reading it back the next morning." },
@@ -117,16 +124,12 @@ export const SLIPS: { id: string; text: string; mark?: string }[] = [
   { id: "m-final", mark: "final", text: "I drew him in the corner of the first page because that's where he was. The next night he wasn't in the corner anymore." },
   { id: "m-tape", mark: "tape", text: "If I sound different on this one, it's because I am. A little more every time." },
   { id: "m-home", mark: "home", text: "Every room in this house has a door I left open. Some of them I didn't open myself." },
-  { id: "ch3", text: "Turn the dial slowly. Things hide between stations." },
-  { id: "eyes", text: "Did you see that too? I always told myself it was the studio lights." },
-  { id: "twice", text: "Twice. Always twice. Once to see it. Once to be seen." },
-  { id: "ink", text: "If you're reading this with a light, put it down for a minute. Some things notice light." },
-  { id: "red", text: "Not yet. I'm not ready to tell you what's at the end." },
-  { id: "said", text: "You said it. Everyone says it, sooner or later." },
 ];
 
 export const SLIP_COPY = {
   found: (n: number, total: number) => `Secret ${n} of ${total}`,
+  /** Shown on the very last secret. */
+  last: "The last one.",
   keep: "Keep it",
   all: "You found every secret. He never meant to leave them. You earned a star.",
   log: "Secrets found",
@@ -174,7 +177,11 @@ export const SLIP_PUZZLES: Record<string, { kind: "cipher" | "scramble" | "mirro
     prompt: "How many times do I say the word look? Only the word look.",
     clue: "Look. Look again. Look closer. Don't look away. Look at me. Looking is not enough.",
   },
-  "m-home": { kind: "cipher", prompt: "The last of my notes. The card, one more time.", clue: "12:00   1:00   7:05   8:05" },
+  "m-home": {
+    kind: "cipher",
+    prompt: "The last of my notes. The card, one more time. I never wanted to write this one.",
+    clue: "4:00   5:00   1:00   8:05   8:00",
+  },
 };
 
 export const BLACKLIGHT_COPY = {

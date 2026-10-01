@@ -264,7 +264,9 @@ function SlipDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   if (!slip) return null;
-  const n = revealed ? count : count + 1;
+  // Numbered by its fixed place in the order, not by when it was found.
+  const position = SLIPS.findIndex((s) => s.id === id) + 1;
+  const isLast = position === SLIPS.length;
   return (
     <dialog
       ref={ref}
@@ -273,7 +275,8 @@ function SlipDialog({
     >
       <div className="pixel-border glitch-in m-1 flex flex-col gap-5 bg-card p-6 [--pb:#c6a6ff]">
         <p className="retro flex items-center gap-3 text-[10px] uppercase text-[#c6a6ff]">
-          <Feather className="size-4" aria-hidden="true" /> {SLIP_COPY.found(Math.max(n, 1), SLIPS.length)}
+          <Feather className="size-4" aria-hidden="true" /> {SLIP_COPY.found(position, SLIPS.length)}
+          {isLast ? <span className="text-destructive"> {SLIP_COPY.last}</span> : null}
         </p>
         {!solved ? (
           <SlipPuzzle id={id} onSolved={() => setSolved(true)} />
@@ -305,19 +308,23 @@ export function SlipJournal() {
       <p className="retro flex items-center gap-3 text-[10px] uppercase text-muted-foreground">
         <Feather className="size-4" aria-hidden="true" /> {SLIP_COPY.log}: {found.length} / {SLIPS.length}
       </p>
-      <ul className="flex flex-col gap-2 text-xl">
-        {SLIPS.map((s) =>
-          found.includes(s.id) ? (
-            <li key={s.id} className="keeper-voice" style={{ color: UV, textShadow: UV_GLOW }}>
-              {s.text}
-            </li>
-          ) : (
-            <li key={s.id} className="text-muted-foreground" aria-label="Not found yet">
-              . . .
-            </li>
-          ),
-        )}
-      </ul>
+      {/* Always in the same order, whatever order they were found in. */}
+      <ol className="flex flex-col gap-2 text-xl">
+        {SLIPS.map((s, i) => (
+          <li key={s.id} className="flex gap-3">
+            <span className="retro w-8 shrink-0 pt-1 text-right text-[10px] text-muted-foreground">{i + 1}</span>
+            {found.includes(s.id) ? (
+              <span className="keeper-voice" style={{ color: UV, textShadow: UV_GLOW }}>
+                {s.text}
+              </span>
+            ) : (
+              <span className="text-muted-foreground" aria-label="Not found yet">
+                . . .
+              </span>
+            )}
+          </li>
+        ))}
+      </ol>
     </div>
   );
 }
