@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ComponentType } from "react";
-import { Volume2, VolumeX, X } from "lucide-react";
+import { X } from "lucide-react";
 
 import { Button } from "@/components/ui/8bit-button";
 import { PixelRocketHero } from "@/components/ui/pixel-rocket-voyager";
@@ -18,7 +18,7 @@ import {
 import TopBar from "@/components/game/TopBar";
 import { CATCHPHRASE, HERO_SUBTITLE, START_OVER_CONFIRM } from "@/game/copy";
 import { STAGE_BY_ID, type StageType } from "@/game/stages";
-import { setMusicEnabled, startMusic } from "@/lib/audio";
+import { AUDIO_EVENT, isAudioBlocked, restartMusic, setMusicEnabled, startMusic } from "@/lib/audio";
 import { useProgress, type Progress } from "@/lib/progress";
 
 const THEME_URL = `${import.meta.env.BASE_URL}media/theme.mp3`;
@@ -70,6 +70,20 @@ function Game({
   reset: () => void;
 }) {
   const [onTitle, setOnTitle] = useState(true);
+  const [audioBlocked, setAudioBlocked] = useState(isAudioBlocked);
+
+  // The title screen always has sound. No toggle there; muting only exists once they're inside,
+  // and every return to the title (or a fresh visit) switches it back on.
+  useEffect(() => {
+    if (onTitle) update({ music: true });
+  }, [onTitle, update]);
+
+  useEffect(() => {
+    const sync = () => setAudioBlocked(isAudioBlocked());
+    sync();
+    window.addEventListener(AUDIO_EVENT, sync);
+    return () => window.removeEventListener(AUDIO_EVENT, sync);
+  }, []);
   const secretRef = useRef<HTMLDialogElement>(null);
   const { find } = useSlips();
 
@@ -100,6 +114,7 @@ function Game({
     if (!window.confirm(START_OVER_CONFIRM)) return;
     reset();
     setOnTitle(true);
+    restartMusic();
   };
 
   if (onTitle) {
@@ -151,19 +166,11 @@ function Game({
             ) : null
           }
         />
-        <button
-          type="button"
-          onClick={() => {
-            startMusic(THEME_URL);
-            update((p) => ({ music: !p.music }));
-          }}
-          aria-pressed={progress.music}
-          aria-label="Music"
-          className="retro fixed right-6 bottom-6 z-30 flex items-center gap-2 text-[10px] text-muted-foreground hover:text-foreground"
-        >
-          {progress.music ? <Volume2 className="size-4" aria-hidden="true" /> : <VolumeX className="size-4" aria-hidden="true" />}
-          {progress.music ? "Sound on" : "Sound off"}
-        </button>
+        {audioBlocked ? (
+          <p className="retro blink pointer-events-none fixed right-6 bottom-6 z-30 text-[10px] text-muted-foreground" aria-hidden="true">
+            Tap anywhere
+          </p>
+        ) : null}
         <dialog
           ref={secretRef}
           aria-label="The lock"

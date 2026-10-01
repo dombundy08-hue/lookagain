@@ -171,6 +171,13 @@ function armUnlock() {
   events.forEach((e) => window.addEventListener(e, unlock, true));
 }
 
+export const AUDIO_EVENT = "lookagain-audio";
+
+/** True while the browser is still holding sound back, waiting for the first touch. */
+export function isAudioBlocked() {
+  return !ctx || ctx.state !== "running";
+}
+
 /** Call as early as possible: on page load, and again from any button press. */
 export function startMusic(url: string) {
   try {
@@ -182,7 +189,10 @@ export function startMusic(url: string) {
       musicBus = ctx.createGain();
       musicBus.connect(master);
       noise = makeNoise(ctx);
-      ctx.onstatechange = beginIfReady;
+      ctx.onstatechange = () => {
+        beginIfReady();
+        window.dispatchEvent(new Event(AUDIO_EVENT));
+      };
       document.addEventListener("visibilitychange", () => {
         if (!ctx) return;
         if (document.hidden) {
@@ -250,6 +260,13 @@ if (import.meta.env.DEV) {
     voices: live.length,
     level: master?.gain.value,
   });
+}
+
+/** Back to the very start of the song (used when the game starts over). */
+export function restartMusic() {
+  haltLoop();
+  firstPassage = true;
+  beginIfReady();
 }
 
 export function stopMusic() {
