@@ -96,7 +96,8 @@ function playPassage() {
 function playBreak() {
   if (!ctx || !musicBus || !noise || !running) return;
   const c = ctx;
-  const seconds = 4 + Math.random() * 9;
+  // Breaks between passages: 8 to 26 seconds (doubled 2026-10-01).
+  const seconds = 8 + Math.random() * 18;
   if (Math.random() < 0.7) {
     const src = c.createBufferSource();
     src.buffer = noise;
