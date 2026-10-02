@@ -131,7 +131,7 @@ function RecordedText({
             {nodes}
           </p>
         ) : (
-          <p key={pi} className="keeper-voice text-2xl leading-snug md:text-[26px]">
+          <p key={pi} className="keeper-voice whitespace-pre-line text-2xl leading-snug md:text-[26px]">
             {nodes}
           </p>
         );
