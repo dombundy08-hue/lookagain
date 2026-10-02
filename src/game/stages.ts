@@ -88,12 +88,12 @@ export const STAGES: StageDef[] = [
     label: "Clock",
     intro: "From here on, the clock is running.",
     rules: [
-      "You start with one minute.",
+      "You start with two minutes.",
       "Every puzzle you finish adds ten seconds.",
       "The clock keeps running from one puzzle to the next.",
       "Finish all three with ten seconds to spare and something will be waiting for you. Fifteen, and there's more.",
     ],
-    seconds: 60,
+    seconds: 120,
     next: "tuner",
   },
   {
