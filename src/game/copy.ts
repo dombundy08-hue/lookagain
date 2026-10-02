@@ -144,9 +144,11 @@ export const BONUS_TAPE = {
   header: "CURIOSITY HOUR. BONUS REEL, NEVER AIRED. Speaker: KEEPER.",
   body: [
     "Fast hands. I like that.",
-    "We used to have a game at the end of every show. The quickest kid in the audience got a prize. Something small. Something shiny.",
-    "They always said thank you. Every single one of them. I should have noticed how quiet it got after they said thank you.",
-    "Keep your hands fast. Keep your eyes faster.",
+    "We used to have a game at the end of every show. The quickest kid in the audience got a prize. A little gold coin, wrapped up shiny. Something to keep.",
+    "I handed out hundreds of them. I thought I was giving something away. It took me years to understand I was only ever passing it along.",
+    "You don't own a thing like that. You accept it. And once you've accepted it, something gets to come and collect. It never takes. It only collects what it's owed.",
+    "I kept the very first one myself, you know. Before the show ever aired. I never looked at it twice. Funny, for me.",
+    "Keep your hands fast. Keep them empty.",
   ],
   audio: "media/bonus-reel.mp3",
 };

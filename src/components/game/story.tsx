@@ -43,7 +43,7 @@ export function LogStage({ stage, next }: StageProps<"log">) {
         {null}
       </StageShell>
       <HuntTimeline className="py-4" />
-      <Button onClick={next} autoFocus>
+      <Button onClick={next}>
         Start the show <span aria-hidden="true">&#9654;</span>
       </Button>
     </div>
