@@ -96,9 +96,9 @@ export const ORDER_COPY = {
  * Tiny "?" marks (mark = the stage they sit on), easiest first, hardest last:
  *   difficulty, log, riddles, clock-start, tuner, rewind, order, clock-result, recall, acrostic, final, tape, home
  * Special finds (no "?"):
- *   ch3     title screen, the "CH 3" in the corner
- *   eyes    title screen, tap while the red eyes are open
- *   twice   top bar, the eye logo pressed twice quickly
+ *   ch3     title screen, the "?" right after "CH 3" in the corner
+ *   eyes    title screen, a red "?" that appears beside the red eyes while they're open
+ *   twice   the "?" beside the eye logo (title screen and top bar), pressed twice quickly
  *   ink     tape log, a faint purple "?" loose on the page under the timeline
  *   red     tape log, the red question mark
  *   said    typing "look again" into any answer box that isn't asking for it

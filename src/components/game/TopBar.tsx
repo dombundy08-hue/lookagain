@@ -7,6 +7,7 @@ import { MILESTONES, STAGE_BY_ID, STAGES } from "@/game/stages";
 import { cn } from "@/lib/utils";
 import { BonusDialog, StarCount } from "./bonus";
 import HuntTimeline from "./HuntTimeline";
+import { TwiceMark } from "./Hint";
 import { useSlips } from "./slips";
 
 const order = STAGES.map((s) => s.id);
@@ -32,27 +33,15 @@ export default function TopBar({
 }) {
   const [bonusOpen, setBonusOpen] = useState<"tape" | "file" | null>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const lastEyePress = useRef(0);
-  const { find, found } = useSlips();
+  const { found } = useSlips();
   const at = order.indexOf(stageId);
 
   return (
     <header className="sticky top-0 z-40 border-b-2 border-border bg-background/95 backdrop-blur-sm">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3">
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            className="cursor-default"
-            aria-label="Curiosity Hour"
-            onClick={() => {
-              // Look twice: two presses close together.
-              const now = Date.now();
-              if (now - lastEyePress.current < 450) find("twice");
-              lastEyePress.current = now;
-            }}
-          >
-            <Eye className="size-5 text-primary" aria-hidden="true" />
-          </button>
+          <Eye className="size-5 text-primary" aria-hidden="true" />
+          <TwiceMark />
           <span className="retro text-[10px]">Curiosity Hour</span>
         </div>
 

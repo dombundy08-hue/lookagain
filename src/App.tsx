@@ -11,7 +11,7 @@ import {
   SpotStage,
   TunerStage,
 } from "@/components/game/bonus";
-import { HomeMark } from "@/components/game/Hint";
+import { ChannelMark, HomeMark, TwiceMark } from "@/components/game/Hint";
 import { AcrosticStage, FinalStage, RecallStage, RiddlesStage } from "@/components/game/puzzles";
 import type { StageProps } from "@/components/game/shared";
 import { SlipProvider, useSlips } from "@/components/game/slips";
@@ -192,15 +192,13 @@ function Game({
             setOnTitle(false);
           }}
           channel={
-            <button
-              type="button"
-              className="retro cursor-default text-[10px] text-muted-foreground"
-              onClick={() => find("ch3")}
-            >
-              CH 3
-            </button>
+            <span className="retro text-[10px] text-muted-foreground">
+              CH 3<ChannelMark />
+            </span>
           }
+          brandMark={<TwiceMark />}
           onEyesSeen={() => find("eyes")}
+          eyesFound={progress.slips.includes("eyes")}
           counterTail={<HomeMark />}
           secondary={
             progress.started ? (

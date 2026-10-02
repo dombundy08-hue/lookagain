@@ -23,8 +23,12 @@ export interface PixelRocketHeroProps {
   secondary?: React.ReactNode;
   /** Replaces the channel label in the corner. */
   channel?: React.ReactNode;
-  /** Called when someone taps the screen while the eyes in the dark are open. */
+  /** Called when someone presses the little "?" that appears beside the eyes in the dark. */
   onEyesSeen?: () => void;
+  /** Hide the eyes' "?" once that secret has been found. */
+  eyesFound?: boolean;
+  /** Something small to sit right after the eye logo (a "?" secret). */
+  brandMark?: React.ReactNode;
   /** Replaces the last digit of the tape counter in the corner. */
   counterTail?: React.ReactNode;
 }
@@ -39,10 +43,12 @@ export const PixelRocketHero = ({
   secondary,
   channel,
   onEyesSeen,
+  eyesFound = false,
+  brandMark,
   counterTail,
 }: PixelRocketHeroProps) => {
   const reduce = useReducedMotion();
-  const eyesOpen = useRef(false);
+  const eyesMark = useRef<HTMLButtonElement>(null);
   const textControls = useAnimation();
   const buttonControls = useAnimation();
 
@@ -58,14 +64,22 @@ export const PixelRocketHero = ({
   }, [textControls, buttonControls, reduce]);
 
   return (
-    <div
-      className="relative flex min-h-svh w-full flex-col items-center justify-center overflow-hidden bg-background"
-      onPointerDown={() => {
-        if (eyesOpen.current) onEyesSeen?.();
-      }}
-    >
-      <PixelVoyagerCanvas eyesOpen={eyesOpen} />
-      <HeroNav channel={channel} />
+    <div className="relative flex min-h-svh w-full flex-col items-center justify-center overflow-hidden bg-background">
+      <PixelVoyagerCanvas eyesMark={eyesMark} />
+      {/* A tiny red "?" that follows the eyes in the dark, only while they're open. */}
+      {!eyesFound ? (
+        <button
+          ref={eyesMark}
+          type="button"
+          onClick={onEyesSeen}
+          aria-label="A question mark"
+          className="retro absolute top-0 left-0 z-20 p-2 text-[10px] text-destructive"
+          style={{ opacity: 0, pointerEvents: "none", textShadow: "0 0 8px rgb(224 72 58 / 0.8)" }}
+        >
+          ?
+        </button>
+      ) : null}
+      <HeroNav channel={channel} brandMark={brandMark} />
       <div className="relative z-10 mt-24 px-4 text-center md:mt-28">
         <div
           aria-hidden="true"
@@ -120,7 +134,7 @@ export const PixelRocketHero = ({
 };
 
 // --- Navigation Component ---
-const HeroNav = ({ channel }: { channel?: React.ReactNode }) => {
+const HeroNav = ({ channel, brandMark }: { channel?: React.ReactNode; brandMark?: React.ReactNode }) => {
   const reduce = useReducedMotion();
   return (
     <motion.nav
@@ -132,6 +146,7 @@ const HeroNav = ({ channel }: { channel?: React.ReactNode }) => {
       <div className="mx-auto flex max-w-7xl items-center justify-between">
         <div className="flex items-center gap-3">
           <Eye className="size-5 text-primary" aria-hidden="true" />
+          {brandMark}
           <span className="retro text-[10px] text-foreground md:text-xs">Curiosity Hour</span>
         </div>
         {channel ?? <span className="retro text-[10px] text-muted-foreground">CH 3</span>}
@@ -151,7 +166,7 @@ const RecBadge = ({ tail }: { tail?: React.ReactNode }) => (
 );
 
 // --- Three.js Canvas Component ---
-const PixelVoyagerCanvas = ({ eyesOpen }: { eyesOpen: React.MutableRefObject<boolean> }) => {
+const PixelVoyagerCanvas = ({ eyesMark }: { eyesMark: React.RefObject<HTMLButtonElement | null> }) => {
   const mountRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -267,7 +282,7 @@ const PixelVoyagerCanvas = ({ eyesOpen }: { eyesOpen: React.MutableRefObject<boo
 
     // --- Something far back. It only looks for a moment. ---
     const eyeMat = new THREE.MeshBasicMaterial({ color: 0xe0483a, transparent: true, opacity: 0 });
-    const eyeGeo = new THREE.BoxGeometry(0.5, 0.25, 0.1);
+    const eyeGeo = new THREE.BoxGeometry(0.9, 0.4, 0.1);
     disposables.push(eyeMat, eyeGeo);
     const eyes = new THREE.Group();
     for (const ex of [-0.7, 0.7]) {
@@ -275,7 +290,26 @@ const PixelVoyagerCanvas = ({ eyesOpen }: { eyesOpen: React.MutableRefObject<boo
       eye.position.x = ex;
       eyes.add(eye);
     }
-    eyes.position.set(14, 7, -30);
+    // Up in the right-hand corner of the dark, whatever the screen shape.
+    const seatEyes = () => {
+      const z = -14;
+      const halfH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * (camera.position.z - z);
+      const halfW = halfH * camera.aspect;
+      eyes.position.set(halfW * 0.68, halfH * 0.5, z);
+    };
+    seatEyes();
+    const eyeScreen = new THREE.Vector3();
+    // Keep the little "?" pinned just above the eyes, and only pressable while they're open.
+    const placeMark = (opacity: number) => {
+      const m = eyesMark.current;
+      if (!m) return;
+      eyeScreen.copy(eyes.position).project(camera);
+      const x = ((eyeScreen.x + 1) / 2) * width();
+      const y = ((1 - eyeScreen.y) / 2) * height();
+      m.style.transform = `translate(${Math.round(x + 18)}px, ${Math.round(y - 30)}px)`;
+      m.style.opacity = String(opacity);
+      m.style.pointerEvents = opacity > 0.2 ? "auto" : "none";
+    };
     scene.add(eyes);
 
     const handlePointerMove = (event: PointerEvent) => {
@@ -303,14 +337,17 @@ const PixelVoyagerCanvas = ({ eyesOpen }: { eyesOpen: React.MutableRefObject<boo
       dust.rotation.y = elapsed * 0.01;
 
       // Every ~19 seconds the eyes open for about a second.
-      const cycle = elapsed % 19;
-      eyeMat.opacity = cycle > 16 && cycle < 17.4 ? Math.sin(((cycle - 16) / 1.4) * Math.PI) * 0.85 : 0;
-      eyesOpen.current = eyeMat.opacity > 0.2;
+      // Every 13 seconds the eyes open for about two and a half seconds.
+      const cycle = elapsed % 13;
+      eyeMat.opacity = cycle > 9.5 && cycle < 12 ? Math.min(1, Math.sin(((cycle - 9.5) / 2.5) * Math.PI) * 1.4) : 0;
+      placeMark(eyeMat.opacity);
 
       composer.render();
     };
 
     if (reduceMotion) {
+      eyeMat.opacity = 0.6;
+      placeMark(0.6);
       composer.render();
     } else {
       animate();
@@ -319,6 +356,7 @@ const PixelVoyagerCanvas = ({ eyesOpen }: { eyesOpen: React.MutableRefObject<boo
     const handleResize = () => {
       camera.aspect = width() / height();
       camera.updateProjectionMatrix();
+      seatEyes();
       renderer.setSize(width(), height());
       composer.setSize(width(), height());
       if (reduceMotion) composer.render();
@@ -334,7 +372,7 @@ const PixelVoyagerCanvas = ({ eyesOpen }: { eyesOpen: React.MutableRefObject<boo
       renderer.dispose();
       if (renderer.domElement.parentNode === mount) mount.removeChild(renderer.domElement);
     };
-  }, [eyesOpen]);
+  }, [eyesMark]);
 
   return <div ref={mountRef} className="absolute inset-0 z-0" />;
 };

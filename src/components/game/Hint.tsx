@@ -1,3 +1,5 @@
+import { useRef } from "react";
+
 import { SLIPS } from "@/game/copy";
 import { cn } from "@/lib/utils";
 import { useSlips } from "./slips";
@@ -68,5 +70,52 @@ export function HomeMark() {
     >
       {done ? "0" : "?"}
     </button>
+  );
+}
+
+/** A tiny "?" for a special secret. Hidden once that secret is found. */
+function SmallMark({
+  id,
+  onPress,
+  className,
+}: {
+  id: string;
+  onPress: () => void;
+  className?: string;
+}) {
+  const { found } = useSlips();
+  if (found.includes(id)) return null;
+  return (
+    <button
+      type="button"
+      onClick={onPress}
+      aria-label="A question mark"
+      className={cn("retro cursor-pointer px-[2px] leading-none text-muted-foreground hover:text-foreground", className)}
+    >
+      ?
+    </button>
+  );
+}
+
+/** Secret 8: the "?" right after "CH 3" in the corner of the title screen. */
+export function ChannelMark() {
+  const { find } = useSlips();
+  return <SmallMark id="ch3" onPress={() => find("ch3")} className="text-[8px]" />;
+}
+
+/** Secret 7: a "?" beside the eye logo. Look twice: press it twice, quickly. */
+export function TwiceMark() {
+  const { find } = useSlips();
+  const last = useRef(0);
+  return (
+    <SmallMark
+      id="twice"
+      className="text-[8px] opacity-70"
+      onPress={() => {
+        const now = Date.now();
+        if (now - last.current < 450) find("twice");
+        last.current = now;
+      }}
+    />
   );
 }
