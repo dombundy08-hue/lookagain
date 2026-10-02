@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import tapeSync from "@/game/tape-sync.json";
 import { Lock } from "lucide-react";
 
 import { Button } from "@/components/ui/8bit-button";
@@ -59,6 +60,19 @@ interface Para {
 
 function toParas(text: string): Para[] {
   return text.split(/\n\s*\n/).map((p, i) => ({ header: i === 0 && /^CURIOSITY HOUR/.test(p), pieces: parseEdits(p) }));
+}
+
+/** How much of the body has been said by time t: follows the voice word by word when the timing fits this text. */
+function voicedChars(t: number, duration: number, body: number) {
+  const sync = tapeSync as [number, number][];
+  if (sync.length < 2 || sync[sync.length - 1][0] !== body) return Math.round((t / duration) * body);
+  let i = 0;
+  while (i < sync.length - 1 && sync[i + 1][1] <= t) i++;
+  if (i >= sync.length - 1) return body;
+  const [c0, t0] = sync[i];
+  const [c1, t1] = sync[i + 1];
+  const f = t1 > t0 ? Math.min(1, Math.max(0, (t - t0) / (t1 - t0))) : 1;
+  return Math.round(c0 + (c1 - c0) * f);
 }
 
 function pieceLength(p: Piece) {
@@ -236,7 +250,7 @@ export function RevealStage({ stage, progress, update, go }: StageProps<"reveal"
     const id = window.setInterval(() => {
       let chars: number;
       if (audio && audioOk.current && audio.duration && Number.isFinite(audio.duration)) {
-        chars = header + Math.round((audio.currentTime / audio.duration) * body);
+        chars = header + voicedChars(audio.currentTime, audio.duration, body);
         if (audio.ended) chars = total;
       } else {
         chars = header + Math.round(((performance.now() - started) / 1000) * 17);
