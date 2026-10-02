@@ -25,7 +25,7 @@ import {
 } from "@/components/game/story";
 import TopBar from "@/components/game/TopBar";
 import { CATCHPHRASE, CLOCK_COPY, HERO_SUBTITLE, START_OVER_CONFIRM } from "@/game/copy";
-import { CLOCK_STAGES, STAGE_BY_ID, type StageType } from "@/game/stages";
+import { CLOCK_STAGES, SECTION_STARS, STAGE_BY_ID, type StageType } from "@/game/stages";
 import { AUDIO_EVENT, isAudioBlocked, restartMusic, setMusicEnabled, startMusic } from "@/lib/audio";
 import { ClockProvider, SharedClockBar, useClockTime } from "@/lib/clock";
 import { useProgress, type Progress } from "@/lib/progress";
@@ -121,8 +121,13 @@ function Game({
     [update],
   );
   const next = useCallback(() => {
+    // Every section they beat earns a star. "next" is only reachable once a section is done.
+    if ((SECTION_STARS as readonly string[]).includes(stage.id)) {
+      const id = `beat-${stage.id}`;
+      update((p) => (p.stars.includes(id) ? {} : { stars: [...p.stars, id] }));
+    }
     if (stage.next) go(stage.next);
-  }, [stage.next, go]);
+  }, [stage.id, stage.next, go, update]);
 
   // The title screen always has sound. Muting only exists once they're inside,
   // and every return to the title (or a fresh visit) switches it back on.

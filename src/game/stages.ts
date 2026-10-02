@@ -61,7 +61,7 @@ export const STAGES: StageDef[] = [
     type: "log",
     label: "Log",
     intro:
-      "Here is how far you've come. Here is how far there is to go. Play well and the show remembers: first-try answers and fast hands earn things you'll need later.",
+      "Here is how far you've come. Here is how far there is to go. Before we start, bring everything you've gathered so far close by: the tapes, the notes, the cards, the book. You'll want to pull them up fast. Play well and the show remembers: first-try answers and fast hands earn things you'll need later.",
     next: "riddles",
   },
   {
@@ -88,12 +88,12 @@ export const STAGES: StageDef[] = [
     label: "Clock",
     intro: "From here on, the clock is running.",
     rules: [
-      "You start with two minutes.",
+      "You start with a minute and a half.",
       "Every puzzle you finish adds ten seconds.",
       "The clock keeps running from one puzzle to the next.",
       "Finish all three with ten seconds to spare and something will be waiting for you. Fifteen, and there's more.",
     ],
-    seconds: 120,
+    seconds: 90,
     next: "tuner",
   },
   {
@@ -138,8 +138,8 @@ export const STAGES: StageDef[] = [
     label: "Recall",
     intro: "Now let's see what you remember. Every answer here came from a tape you played, or something you found.",
     warning:
-      "Be ready to act fast. Whatever time you have left carries over, plus two more minutes, because this round is harder. Every right answer adds twenty seconds. If the tape runs out, it rewinds all the way to the first question, and the questions will not be the same.",
-    startBonus: 120,
+      "Be ready to act fast. Keep everything you've gathered right next to you. Whatever time you have left carries over, plus three more minutes, because this round is harder. Every right answer adds twenty seconds. If the tape runs out, it rewinds all the way to the first question, and the questions will not be the same.",
+    startBonus: 180,
     perCorrect: 20,
     maxRewinds: 20,
     sets: WATCHER_SETS,
@@ -201,6 +201,9 @@ export const STAGE_BY_ID = Object.fromEntries(STAGES.map((s) => [s.id, s])) as R
 
 /** The four checkpoints shown in the top bar. */
 export const MILESTONES = ["riddles", "recall", "final", "tape"] as const;
+
+/** Beating any of these sections earns a star (the clock and Look Again stars are earned separately). */
+export const SECTION_STARS = ["riddles", "tuner", "rewind", "order", "recall", "final"] as const;
 
 /** Stages that run on the shared clock. */
 export const CLOCK_STAGES = ["tuner", "rewind", "order"] as const;

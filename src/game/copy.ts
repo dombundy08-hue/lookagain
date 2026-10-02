@@ -63,7 +63,7 @@ export const RESULT_COPY = {
   none: "The clock beat you this time. No bonus. The show remembers that too.",
   tape: "You beat the clock with time to spare. Something was waiting for you.",
   file: "Fifteen seconds to spare. That's two things.",
-  carry: (s: string) => `You carry ${s} into the next round, plus two more minutes.`,
+  carry: (s: string) => `You carry ${s} into the next round, plus three more minutes.`,
   open: "Play it",
   read: "Read it",
 };
