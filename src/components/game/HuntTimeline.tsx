@@ -24,18 +24,16 @@ export default function HuntTimeline({ className, withSecrets = true }: { classN
   );
   return (
     <div className="flex flex-col gap-8">
-      <Timeline2
-        className={className}
-        title="Tape Log"
-        description="What you've found, and what is still waiting."
-        steps={steps}
-      />
-      {withSecrets ? (
-        <>
-          <InvisibleInk />
-          <SlipJournal />
-        </>
-      ) : null}
+      <div className="relative">
+        <Timeline2
+          className={className}
+          title="Tape Log"
+          description="What you've found, and what is still waiting."
+          steps={steps}
+        />
+        {withSecrets ? <InvisibleInk /> : null}
+      </div>
+      {withSecrets ? <SlipJournal /> : null}
     </div>
   );
 }

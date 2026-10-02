@@ -99,7 +99,7 @@ export const ORDER_COPY = {
  *   ch3     title screen, the "CH 3" in the corner
  *   eyes    title screen, tap while the red eyes are open
  *   twice   top bar, the eye logo pressed twice quickly
- *   ink     tape log, invisible ink found by moving the light over the dark panel
+ *   ink     tape log, a faint purple "?" loose on the page under the timeline
  *   red     tape log, the red question mark
  *   said    typing "look again" into any answer box that isn't asking for it
  */
@@ -133,7 +133,6 @@ export const SLIP_COPY = {
   keep: "Keep it",
   all: "You found every secret. He never meant to leave them. You earned a star.",
   log: "Secrets found",
-  inkHint: "Some ink only shows under the right light.",
 };
 
 /** The catchphrase on the title screen. The word "secret" in it opens its own lock. */

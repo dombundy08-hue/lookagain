@@ -357,16 +357,14 @@ export function SlipJournal() {
       <p className="retro flex items-center gap-3 text-[10px] uppercase text-muted-foreground">
         <Feather className="size-4" aria-hidden="true" /> {SLIP_COPY.log}: {found.length} / {SLIPS.length}
       </p>
-      {found.length ? <p className="text-lg text-muted-foreground">Move the light over a line to read it.</p> : null}
       {/* Always in the same order, whatever order they were found in. */}
       <ol className="flex flex-col gap-2 text-xl">
         {SLIPS.map((s, i) => (
           <li key={s.id} className="flex gap-3">
             <span className="retro w-8 shrink-0 pt-1 text-right text-[10px] text-muted-foreground">{i + 1}</span>
             {found.includes(s.id) ? (
-              <span className="flex-1 bg-[#070806] px-2">
-                <span className="sr-only">{s.text}</span>
-                <InkText text={s.text} className="text-xl [&_p]:text-left" />
+              <span className="keeper-voice" style={{ color: UV, textShadow: UV_GLOW }}>
+                {s.text}
               </span>
             ) : (
               <span className="text-muted-foreground" aria-label="Not found yet">
@@ -380,26 +378,19 @@ export function SlipJournal() {
   );
 }
 
-/** A dark panel in the tape log. Somewhere in it is a faint mark that opens a secret. */
+/** Secret 4: a faint purple "?" sitting loose on the tape log page, no box around it. */
 export function InvisibleInk() {
   const { find, found } = useSlips();
-  const done = found.includes("ink");
+  if (found.includes("ink")) return null;
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-2 px-4">
-      <p className="text-lg text-muted-foreground">{SLIP_COPY.inkHint}</p>
-      <div className="relative flex min-h-28 items-center justify-center bg-[#070806] p-6">
-        {!done ? (
-          <button
-            type="button"
-            onClick={() => find("ink")}
-            aria-label="Hidden ink"
-            className="retro absolute right-[18%] bottom-4 cursor-pointer p-1 text-[9px] text-[#c6a6ff] opacity-30 hover:opacity-100"
-            style={{ textShadow: UV_GLOW }}
-          >
-            ?
-          </button>
-        ) : null}
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={() => find("ink")}
+      aria-label="A question mark"
+      className="retro absolute right-[12%] bottom-2 z-10 cursor-pointer p-1 text-[11px] text-[#c6a6ff] opacity-40 hover:opacity-100"
+      style={{ textShadow: UV_GLOW }}
+    >
+      ?
+    </button>
   );
 }
