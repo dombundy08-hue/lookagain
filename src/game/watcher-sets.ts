@@ -9,7 +9,7 @@ export const WATCHER_SETS: PromptItem[][] = [
     { id: "s01-t", prompt: "On the second tape I had a little emergency and told you to stay dry. Where did that send you?", hint: "\"I always get held up there.\"", },
     { id: "s01-c", prompt: "Corporate wanted the show to move off tape and onto what?", hint: "Round, shiny, music inside.", },
     { id: "s01-h", prompt: "There was a name in the segment notes. The supervisor's first name?", hint: "Find the segment notes from the first tape. Read every word, even the small ones up top.", note: "This one needs time. You may have to go and find something. The clock tops up to five minutes. Go quickly, and carefully.", minSeconds: 300, },
-    { id: "s01-e", prompt: "Third tape: my quiet friend never had to talk. What did all the talking for him?", hint: "\"Those ___ do all the talking for him.\"", },
+    { id: "s01-e", prompt: "How did our owl friend look again? What did he look with?", hint: "Third tape: \"those ___ do all the talking for him.\"", },
     { id: "s01-r", prompt: "Fourth tape: my grandmother wore the same perfume as long as I knew her. What was it?", hint: "A flower, mixed into something you drink.", },
   ],
   [

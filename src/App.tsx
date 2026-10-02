@@ -111,7 +111,8 @@ function Game({
   const secretRef = useRef<HTMLDialogElement>(null);
   const { find } = useSlips();
 
-  const stage = STAGE_BY_ID[progress.stageId] ?? STAGE_BY_ID.difficulty;
+  // The old separate "tape" page is now the finished reveal page.
+  const stage = STAGE_BY_ID[progress.stageId === "tape" ? "reveal" : progress.stageId] ?? STAGE_BY_ID.difficulty;
 
   const go = useCallback(
     (stageId: string) => {

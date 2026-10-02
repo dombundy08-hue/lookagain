@@ -275,6 +275,15 @@ export function setMusicEnabled(on: boolean) {
   applyLevel();
 }
 
+/** Cut the song completely (static and voices still play), or bring it back. */
+export function holdMusic(on: boolean) {
+  if (!ctx || !musicBus) return;
+  const now = ctx.currentTime;
+  musicBus.gain.cancelScheduledValues(now);
+  musicBus.gain.setValueAtTime(musicBus.gain.value, now);
+  musicBus.gain.linearRampToValueAtTime(on ? 0 : 1, now + (on ? 0.15 : 1.2));
+}
+
 /** Turn the music down under a voice (and back up). */
 export function duckMusic(on: boolean) {
   setDucked(on);

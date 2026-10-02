@@ -4,7 +4,7 @@ import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/8bit-button";
 import DifficultySelect, { type Difficulty } from "@/components/ui/8bit-difficulty-select";
 import { DIFFICULTY_LOCKED, DIFFICULTY_REPLY, SECRET_COPY, WELCOME } from "@/game/copy";
-import { duckMusic, setStatic } from "@/lib/audio";
+import { holdMusic, setStatic } from "@/lib/audio";
 import { normalize, openSecret, openTranscript, parseEdits, type Lock as LockKind, type Piece, type SecretPayload } from "@/lib/sealed";
 import { cn } from "@/lib/utils";
 import { Snow } from "./bonus";
@@ -165,21 +165,32 @@ function useTranscript(finalKey: string | null, onMissing: () => void) {
 }
 
 /**
- * The reveal: five seconds of NO SIGNAL, a burst of static, then the recording plays on its own
- * and the words crawl down the page with it. No play button.
+ * The reveal and the game tape page in one. Five seconds of NO SIGNAL, then the song cuts out and
+ * there is only static. When the words start, the static stops: dead silence, then the voice.
+ * Once it has played, the page stays as it is: the "secret" words are pressable right here.
  */
-export function RevealStage({ stage, progress, go, next }: StageProps<"reveal">) {
+export function RevealStage({ stage, progress, update, go }: StageProps<"reveal">) {
   const text = useTranscript(progress.finalKey, () => go("final"));
   const paras = useMemo(() => (text ? toParas(text) : []), [text]);
   const total = useMemo(() => paras.reduce((n, p) => n + p.pieces.reduce((m, x) => m + pieceLength(x), 0), 0), [paras]);
   const reduce = prefersReducedMotion();
-  const [phase, setPhase] = useState<"nosignal" | "static" | "play" | "done">(reduce ? "play" : "nosignal");
+  const [phase, setPhase] = useState<"nosignal" | "static" | "play" | "done">(
+    progress.revealSeen ? "done" : reduce ? "play" : "nosignal",
+  );
   const [budget, setBudget] = useState(0);
   const [edited, setEdited] = useState<Set<string>>(new Set());
   const [posterOk, setPosterOk] = useState(true);
+  const [videoOk, setVideoOk] = useState(true);
+  const [voiceOk, setVoiceOk] = useState(true);
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioOk = useRef(true);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  // This page is silent apart from the static and the voice. The song comes back when they leave.
+  useEffect(() => {
+    if (phase === "static" || phase === "play") holdMusic(true);
+  }, [phase]);
+  useEffect(() => () => holdMusic(false), []);
 
   // NO SIGNAL, then static.
   useEffect(() => {
@@ -190,22 +201,20 @@ export function RevealStage({ stage, progress, go, next }: StageProps<"reveal">)
 
   useEffect(() => {
     if (phase !== "static") return;
-    duckMusic(true);
-    setStatic(0.9);
+    setStatic(1);
     const t = window.setTimeout(() => {
       setStatic(0);
       setPhase("play");
-    }, 1600);
+    }, 1800);
     return () => {
       window.clearTimeout(t);
       setStatic(0);
     };
   }, [phase]);
 
-  // Play: the voice starts by itself; the text follows the voice (or reads at a steady pace without it).
+  // Play: the voice starts by itself; the words follow the voice (or read at a steady pace without it).
   useEffect(() => {
     if (phase !== "play" || !text) return;
-    duckMusic(true);
     if (reduce) {
       setBudget(total);
       setPhase("done");
@@ -231,7 +240,9 @@ export function RevealStage({ stage, progress, go, next }: StageProps<"reveal">)
     return () => window.clearInterval(id);
   }, [phase, text, total, reduce]);
 
-  useEffect(() => () => duckMusic(false), []);
+  useEffect(() => {
+    if (phase === "done" && !progress.revealSeen) update({ revealSeen: true });
+  }, [phase, progress.revealSeen, update]);
 
   // Words the creature edits flip a moment after they're fully said.
   // Scheduled once per word; only cleared when the screen goes away.
@@ -257,14 +268,24 @@ export function RevealStage({ stage, progress, go, next }: StageProps<"reveal">)
     if (phase === "play") bottomRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
   }, [budget, phase]);
 
+  const done = phase === "done";
   return (
-    <StageShell intro={stage.intro}>
+    <StageShell
+      intro={done ? undefined : stage.intro}
+      title={done ? "The Game Tape" : undefined}
+      mark={done ? "tape" : undefined}
+    >
       <audio
         ref={audioRef}
         preload="auto"
+        controls={done && voiceOk}
         src={asset(stage.audio)}
-        onError={() => (audioOk.current = false)}
-        aria-label="The Keeper reads the recording. The words appear on screen as he speaks."
+        onError={() => {
+          audioOk.current = false;
+          setVoiceOk(false);
+        }}
+        className={done && voiceOk ? "w-full" : "hidden"}
+        aria-label="The Keeper reads the recording. The words are on screen too."
       />
       {phase === "nosignal" || phase === "static" ? (
         <div className="pixel-border relative m-1 flex aspect-video items-center justify-center overflow-hidden bg-black">
@@ -285,16 +306,29 @@ export function RevealStage({ stage, progress, go, next }: StageProps<"reveal">)
             </div>
           ) : null}
           <PromptCard className="flex flex-col gap-6">
-            <RecordedText paras={paras} budget={phase === "done" ? null : budget} edited={edited} />
-            {phase === "play" ? <span className="blink text-primary" aria-hidden="true">_</span> : null}
+            {/* "secret" is pressable the moment it appears, during the reading and after. */}
+            <RecordedText paras={paras} budget={done ? null : budget} edited={edited} onSecret={() => go("secret")} />
+            {phase === "play" ? (
+              <span className="blink text-primary" aria-hidden="true">
+                _
+              </span>
+            ) : null}
           </PromptCard>
           <div ref={bottomRef} />
-          {phase === "done" ? (
-            <div>
-              <Button autoFocus onClick={next}>
-                Continue <span aria-hidden="true">&#9654;</span>
-              </Button>
-            </div>
+          {done && videoOk ? (
+            <figure className="flex flex-col gap-2">
+              <video
+                controls
+                playsInline
+                preload="metadata"
+                className="pixel-border m-1 w-full bg-black"
+                onError={() => setVideoOk(false)}
+              >
+                <source src={asset("media/garage.mp4")} type="video/mp4" onError={() => setVideoOk(false)} />
+                <track kind="captions" src={asset("media/garage.vtt")} srcLang="en" label="English" default />
+              </video>
+              <figcaption className="text-lg text-muted-foreground">Recovered footage. Captions are on.</figcaption>
+            </figure>
           ) : null}
         </div>
       )}
@@ -428,7 +462,7 @@ export function SecretStage({ stage, progress, update, go }: StageProps<"secret"
         onUnlock={(code) => update((p) => ({ unlocked: [...p.unlocked, code] }))}
         footer={
           <div>
-            <Button variant="ghost" size="sm" onClick={() => go("tape")}>
+            <Button variant="ghost" size="sm" onClick={() => go("reveal")}>
               {SECRET_COPY.back}
             </Button>
           </div>

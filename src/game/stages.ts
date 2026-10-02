@@ -156,10 +156,10 @@ export const STAGES: StageDef[] = [
     id: "spot",
     type: "spot",
     label: "Look Again",
-    intro: "Two copies of the same page from the old program guide. One word changed. Ten seconds, then it's gone.",
+    intro: "Two copies of the same page from the old program guide. One word changed. Fifteen seconds, then it's gone.",
     original: "Tonight on Curiosity Hour, the Keeper shows you how to look twice. Bring a friend. Bring a flashlight. Bring your eyes.",
     changed: "Tonight on Curiosity Hour, the Keeper shows you how to look twice. Bring a friend. Bring a flashlight. Leave your eyes.",
-    seconds: 10,
+    seconds: 15,
     next: "final",
   },
   {
@@ -173,12 +173,12 @@ export const STAGES: StageDef[] = [
   {
     id: "reveal",
     type: "reveal",
-    label: "Reveal",
+    label: "Tape",
     intro: "You found the word. Here is something I was never supposed to show you.",
     poster: "media/poster.jpg",
     audio: "media/keeper.mp3",
     noSignalSeconds: 5,
-    next: "tape",
+    next: "secret",
   },
   {
     id: "tape",
@@ -200,7 +200,7 @@ export const STAGES: StageDef[] = [
 export const STAGE_BY_ID = Object.fromEntries(STAGES.map((s) => [s.id, s])) as Record<string, StageDef>;
 
 /** The four checkpoints shown in the top bar. */
-export const MILESTONES = ["riddles", "recall", "final", "tape"] as const;
+export const MILESTONES = ["riddles", "recall", "final", "reveal"] as const;
 
 /** Beating any of these sections earns a star (the clock and Look Again stars are earned separately). */
 export const SECTION_STARS = ["riddles", "tuner", "rewind", "order", "recall", "final"] as const;

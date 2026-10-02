@@ -29,6 +29,8 @@ export interface Progress {
   bonuses: string[];
   /** Normalized final word, kept on this device only, so a reload can reopen the tape. */
   finalKey: string | null;
+  /** The reveal (static, then the words) has played once; later visits show the finished page. */
+  revealSeen: boolean;
   /** Normalized codes that opened the recordings lock. */
   unlocked: string[];
   /** Normalized codes that opened the title-screen lock. */
@@ -56,6 +58,7 @@ export const FRESH: Progress = {
   recall: [],
   bonuses: [],
   finalKey: null,
+  revealSeen: false,
   unlocked: [],
   titleUnlocked: [],
   music: true,
