@@ -60,27 +60,90 @@ export function SlipProvider({
   );
 }
 
+const INK_MASK = "radial-gradient(circle 70px at var(--x) var(--y), #000 25%, transparent 100%)";
+
 /**
- * Text written in invisible ink. Drag a finger or the mouse over it like a blacklight;
- * once most of it has been lit, it stays lit and onRevealed fires.
+ * Invisible ink: the words only ever show inside the circle of light under the finger or mouse.
+ * The page never lights up by itself, even after the secret is found.
  */
-function Blacklight({ text, onRevealed }: { text: string; onRevealed: () => void }) {
-  const boxRef = useRef<HTMLDivElement>(null);
+function InkText({
+  text,
+  className,
+  onShine,
+}: {
+  text: string;
+  className?: string;
+  onShine?: (x: number, y: number, rect: DOMRect) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLParagraphElement>(null);
-  const lit = useRef(new Set<number>());
-  const [revealed, setRevealed] = useState(false);
-  const done = useRef(false);
   const [lightOn, setLightOn] = useState(false);
-  const COLS = 10;
-  const ROWS = 4;
-  const RADIUS = 80;
 
   function shine(clientX: number, clientY: number) {
     const t = textRef.current;
-    if (!t || done.current) return;
+    if (!t) return;
     const r = t.getBoundingClientRect();
     t.style.setProperty("--x", `${clientX - r.left}px`);
     t.style.setProperty("--y", `${clientY - r.top}px`);
+    onShine?.(clientX, clientY, r);
+  }
+
+  return (
+    <div
+      ref={ref}
+      onPointerEnter={() => setLightOn(true)}
+      onPointerMove={(e) => {
+        setLightOn(true);
+        shine(e.clientX, e.clientY);
+      }}
+      onPointerDown={(e) => {
+        setLightOn(true);
+        shine(e.clientX, e.clientY);
+      }}
+      onPointerLeave={() => setLightOn(false)}
+      onPointerUp={(e) => {
+        if (e.pointerType !== "mouse") setLightOn(false); // a lifted finger takes the light with it
+      }}
+      className={cn("relative touch-none select-none cursor-crosshair", className)}
+      data-ink=""
+    >
+      <p
+        ref={textRef}
+        aria-hidden="true"
+        className="keeper-voice text-center leading-snug"
+        style={{
+          color: UV,
+          textShadow: UV_GLOW,
+          opacity: lightOn ? 1 : 0,
+          WebkitMaskImage: INK_MASK,
+          maskImage: INK_MASK,
+          ["--x" as string]: "-200px",
+          ["--y" as string]: "-200px",
+        }}
+      >
+        {text}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * The pop-up's ink panel. Sweep the light over the words; once most of them have been lit,
+ * the secret counts. The words stay invisible ink the whole time.
+ */
+function Blacklight({ text, onRevealed }: { text: string; onRevealed: () => void }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const lit = useRef(new Set<number>());
+  const done = useRef(false);
+  const [progress, setProgress] = useState(0);
+  const [found, setFound] = useState(false);
+  const COLS = 12;
+  const ROWS = 4;
+  const RADIUS = 45;
+  const NEED = 0.85;
+
+  function mark(clientX: number, clientY: number, r: DOMRect) {
+    if (done.current) return;
     for (let row = 0; row < ROWS; row++) {
       for (let col = 0; col < COLS; col++) {
         const cx = r.left + ((col + 0.5) / COLS) * r.width;
@@ -88,77 +151,63 @@ function Blacklight({ text, onRevealed }: { text: string; onRevealed: () => void
         if (Math.hypot(cx - clientX, cy - clientY) < RADIUS) lit.current.add(row * COLS + col);
       }
     }
-    if (lit.current.size >= COLS * ROWS * 0.7) {
+    const p = lit.current.size / (COLS * ROWS);
+    setProgress(p);
+    if (p >= NEED) {
       done.current = true;
-      setRevealed(true);
+      setFound(true);
       onRevealed();
     }
   }
 
-  // Keyboard: Enter or Space sweeps the light across the page by itself.
+  // Keyboard: Enter or Space sweeps the light across the words by itself, row by row.
   function sweep() {
-    const t = textRef.current;
-    if (!t || done.current) return;
-    const r = t.getBoundingClientRect();
-    setLightOn(true);
+    const panel = panelRef.current;
+    const ink = panel?.querySelector<HTMLElement>("[data-ink]");
+    const p = ink?.querySelector("p");
+    if (!ink || !p || done.current) return;
+    const r = p.getBoundingClientRect();
     let step = 0;
-    const steps = ROWS * 12;
+    const per = 16;
     const id = window.setInterval(() => {
-      const row = Math.floor(step / 12);
-      const frac = (step % 12) / 11;
-      shine(r.left + frac * r.width, r.top + ((row + 0.5) / ROWS) * r.height);
+      const row = Math.floor(step / per);
+      const frac = (step % per) / (per - 1);
+      const x = r.left + frac * r.width;
+      const y = r.top + ((row + 0.5) / ROWS) * r.height;
+      ink.dispatchEvent(new PointerEvent("pointermove", { bubbles: true, clientX: x, clientY: y, pointerType: "mouse" }));
       step++;
-      if (step >= steps || done.current) window.clearInterval(id);
-    }, 40);
+      if (step >= ROWS * per || done.current) {
+        window.clearInterval(id);
+        ink.dispatchEvent(new PointerEvent("pointerleave", { bubbles: false }));
+      }
+    }, 35);
   }
 
-  const mask = "radial-gradient(circle 80px at var(--x) var(--y), #000 30%, transparent 100%)";
   return (
     <div className="flex flex-col gap-3">
-      {!revealed ? (
-        <p className="flex items-center gap-2 text-lg text-muted-foreground">
-          <Flashlight className="size-4 text-[#c6a6ff]" aria-hidden="true" /> {BLACKLIGHT_COPY.how}
-        </p>
-      ) : null}
+      <p className="flex items-center gap-2 text-lg text-muted-foreground">
+        <Flashlight className="size-4 text-[#c6a6ff]" aria-hidden="true" /> {BLACKLIGHT_COPY.how}
+      </p>
       <div
-        ref={boxRef}
-        tabIndex={revealed ? -1 : 0}
+        ref={panelRef}
+        tabIndex={0}
         role="button"
-        aria-label={revealed ? text : `Hidden ink. ${BLACKLIGHT_COPY.keys}`}
-        onPointerEnter={() => setLightOn(true)}
-        onPointerMove={(e) => shine(e.clientX, e.clientY)}
-        onPointerDown={(e) => {
-          setLightOn(true);
-          shine(e.clientX, e.clientY);
-        }}
-        onPointerLeave={() => setLightOn(false)}
+        aria-label={found ? text : `Hidden ink. ${BLACKLIGHT_COPY.keys}`}
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
             sweep();
           }
         }}
-        className={cn(
-          "relative flex min-h-36 touch-none select-none items-center justify-center overflow-hidden bg-[#070806] p-6 outline-none",
-          !revealed && "cursor-crosshair focus-visible:ring-2 focus-visible:ring-[#c6a6ff]",
-        )}
+        className="flex min-h-36 items-center justify-center bg-[#070806] p-6 outline-none focus-visible:ring-2 focus-visible:ring-[#c6a6ff]"
       >
-        <p
-          ref={textRef}
-          className="keeper-voice text-center text-2xl leading-snug"
-          style={{
-            color: UV,
-            textShadow: UV_GLOW,
-            opacity: revealed || lightOn ? 1 : 0,
-            WebkitMaskImage: revealed ? "none" : mask,
-            maskImage: revealed ? "none" : mask,
-            transition: revealed ? "opacity 400ms" : undefined,
-            ["--x" as string]: "-200px",
-            ["--y" as string]: "-200px",
-          }}
-        >
-          {text}
-        </p>
+        <InkText text={text} className="w-full text-2xl" onShine={mark} />
+      </div>
+      <div className="flex items-center gap-3" aria-hidden="true">
+        <div className="h-1 flex-1 bg-secondary">
+          <div className="h-1 bg-[#c6a6ff]" style={{ width: `${Math.min(1, progress / NEED) * 100}%` }} />
+        </div>
+        <span className="retro text-[8px] text-muted-foreground">{found ? "Read" : "Light it"}</span>
       </div>
     </div>
   );
@@ -308,14 +357,16 @@ export function SlipJournal() {
       <p className="retro flex items-center gap-3 text-[10px] uppercase text-muted-foreground">
         <Feather className="size-4" aria-hidden="true" /> {SLIP_COPY.log}: {found.length} / {SLIPS.length}
       </p>
+      {found.length ? <p className="text-lg text-muted-foreground">Move the light over a line to read it.</p> : null}
       {/* Always in the same order, whatever order they were found in. */}
       <ol className="flex flex-col gap-2 text-xl">
         {SLIPS.map((s, i) => (
           <li key={s.id} className="flex gap-3">
             <span className="retro w-8 shrink-0 pt-1 text-right text-[10px] text-muted-foreground">{i + 1}</span>
             {found.includes(s.id) ? (
-              <span className="keeper-voice" style={{ color: UV, textShadow: UV_GLOW }}>
-                {s.text}
+              <span className="flex-1 bg-[#070806] px-2">
+                <span className="sr-only">{s.text}</span>
+                <InkText text={s.text} className="text-xl [&_p]:text-left" />
               </span>
             ) : (
               <span className="text-muted-foreground" aria-label="Not found yet">
