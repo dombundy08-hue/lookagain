@@ -14,7 +14,7 @@ export const WATCHER_SETS: PromptItem[][] = [
   ],
   [
     { id: "s02-w", prompt: "On the second tape I said I like doing this to things, \"nice and neat.\" Old habit. What is it?", hint: "Think about how the tapes have been showing up. What's on the outside?", },
-    { id: "s02-a", prompt: "Who cheers at exactly the same level, no matter what I say?", hint: "The people in the seats.", },
+    { id: "s02-a", prompt: "First tape: \"___, time to actually do this.\"", hint: "A word for okay, with an extra syllable.", },
     { id: "s02-t", prompt: "Right after Thanksgiving, up went the ___.", hint: "Fourth tape. It smelled like pine.", },
     { id: "s02-c", prompt: "What did my mother keep going on the stove every winter?", hint: "A stick that smells sweet.", },
     { id: "s02-h", prompt: "Every tape opens with two seconds of tape ___.", hint: "The sound before the music starts.", },
@@ -55,7 +55,7 @@ export const WATCHER_SETS: PromptItem[][] = [
     { id: "s06-c", prompt: "The cipher card is called the Flag ___.", hint: "It has hands.", },
     { id: "s06-h", prompt: "Segment notes, the second 5:00 cue: \"___ cue.\"", hint: "Keep still. Wait.", },
     { id: "s06-e", prompt: "Third tape: \"I keep telling you it gets ___.\"", hint: "Less hard.", },
-    { id: "s06-r", prompt: "Fourth tape: \"Sounds like something you'd find ___ around in a pocket.\"", hint: "The sound coins make in a jar.", },
+    { id: "s06-r", prompt: "Fourth tape: \"it all just seems so ___ to me, doesn't it?\"", hint: "The opposite of planned.", },
   ],
   [
     { id: "s07-w", prompt: "The invisible-ink letter said: don't look at the machine. Don't look at the ___, either.", hint: "What's on every side of a room?", },
@@ -73,7 +73,7 @@ export const WATCHER_SETS: PromptItem[][] = [
     { id: "s08-c", prompt: "Second journal page: \"Not just the ___ this time.\"", hint: "Look at the first journal drawing. Where was he?", },
     { id: "s08-h", prompt: "The invisible-ink letter: \"tumbling and ___ to itself.\"", hint: "A song with your mouth closed.", },
     { id: "s08-e", prompt: "The invisible-ink letter: \"since you've ___ it.\"", hint: "Got it by working for it.", },
-    { id: "s08-r", prompt: "Fourth tape: \"Small. ___. Worth more to the right person than it looks.\"", hint: "Shaped like a circle.", },
+    { id: "s08-r", prompt: "Fourth tape: \"more about what they do to a ___.\"", hint: "Four walls and a door.", },
   ],
   [
     { id: "s09-w", prompt: "Vance said CDs don't do this in a hot delivery van the way reels do. What?", hint: "What happens to plastic left in a hot car?", },
@@ -113,7 +113,7 @@ export const WATCHER_SETS: PromptItem[][] = [
   ],
   [
     { id: "s13-w", prompt: "First tape: \"You'll know it by heart before long. ___, here it comes.\"", hint: "Something you do with your eyes. Also something on your wrist.", },
-    { id: "s13-a", prompt: "What comes right after the catchphrase on the first tape?", hint: "Hands together.", },
+    { id: "s13-a", prompt: "Second tape: \"Look once, you get nothing. Look ___, you get everything.\"", hint: "The word the whole show is built on.", },
     { id: "s13-t", prompt: "First tape: \"Most people look at a ___ exactly once.\"", hint: "Any old object.", },
     { id: "s13-c", prompt: "Vance: \"They don't want aged. They want ___.\"", hint: "The opposite of dirty.", },
     { id: "s13-h", prompt: "First tape, the very first words: \"Well hello, hello, ___!\"", hint: "Say it a third time, louder.", },
@@ -131,7 +131,7 @@ export const WATCHER_SETS: PromptItem[][] = [
   ],
   [
     { id: "s15-w", prompt: "Second tape: \"Go ahead, find me, and stay dry. I'll be ___.\"", hint: "What I always am, at the end of a tape.", },
-    { id: "s15-a", prompt: "Who laughs right after \"I am... the Keeper\"?", hint: "They never miss a cue.", },
+    { id: "s15-a", prompt: "First tape, when you came back from the picture: \"Perfect. That's ___.\"", hint: "He was very pleased.", },
     { id: "s15-t", prompt: "Segment notes: \"keep the hallway clear before ___.\"", hint: "What the show does when the cameras roll.", },
     { id: "s15-c", prompt: "Fourth tape: three scents sounds like three ___.", hint: "Money.", },
     { id: "s15-h", prompt: "H. Vance. What does the H stand for?", hint: "Signed at the bottom of the segment notes, and named at the top.", note: "This one needs time. You may have to go and find something. The clock tops up to five minutes. Go quickly, and carefully.", minSeconds: 300, },
@@ -145,7 +145,7 @@ export const WATCHER_SETS: PromptItem[][] = [
     { id: "s16-c", prompt: "Vance said these press cheaper and ship easier.", hint: "Not tapes.", },
     { id: "s16-h", prompt: "Third tape: \"He's been ___ onto something for me a good long while.\"", hint: "Keeping in your hands.", },
     { id: "s16-e", prompt: "Third tape: \"Those ___ do all the talking for him.\"", hint: "What you see with.", },
-    { id: "s16-r", prompt: "Fourth tape: \"Worth more to the right person than it looks.\" Small, ___.", hint: "Like a coin.", },
+    { id: "s16-r", prompt: "Fourth tape: \"Reminds me of something small and ___.\"", hint: "Think about the shape of it.", },
   ],
   [
     { id: "s17-w", prompt: "Second tape: \"Bet you didn't expect me all ___ up nice and neat like that.\"", hint: "Grinch paper.", },

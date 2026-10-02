@@ -92,11 +92,17 @@ function RecordedText({
   budget,
   edited,
   onSecret,
+  allEdited,
+  quiet = false,
 }: {
   paras: Para[];
   budget: number | null;
   edited: Set<string>;
   onSecret?: () => void;
+  /** Show every rewritten word already rewritten (default: when the whole text is shown). */
+  allEdited?: boolean;
+  /** Rewritten words look like ordinary text: no colour, no flicker. */
+  quiet?: boolean;
 }) {
   let left = budget ?? Number.POSITIVE_INFINITY;
   return (
@@ -114,10 +120,10 @@ function RecordedText({
           } else {
             const full = left >= piece.shown.length;
             left -= piece.shown.length;
-            const isEdited = budget === null || edited.has(key);
+            const isEdited = (allEdited ?? budget === null) || edited.has(key);
             nodes.push(
               isEdited ? (
-                <span key={key} className="glitch-in text-[#c6a6ff]" title="">
+                <span key={key} className={quiet ? undefined : "glitch-in text-[#c6a6ff]"}>
                   {piece.edited}
                 </span>
               ) : (
@@ -389,6 +395,17 @@ export function TapeStage({ stage, progress, go }: StageProps<"tape">) {
 function Recording({ payload }: { payload: SecretPayload }) {
   const [audioOk, setAudioOk] = useState(Boolean(payload.audio));
   const paras = useMemo(() => toParas(payload.body), [payload.body]);
+  const quiet = Boolean(payload.quiet);
+  const [edited, setEdited] = useState<Set<string>>(new Set());
+
+  // Unless it's a quiet transcript, the changed words show what he said first, then rewrite themselves, one by one.
+  useEffect(() => {
+    if (quiet) return;
+    const keys: string[] = [];
+    paras.forEach((para, pi) => para.pieces.forEach((piece, i) => piece.kind === "edit" && keys.push(`${pi}-${i}`)));
+    const timers = keys.map((k, n) => window.setTimeout(() => setEdited((s) => new Set(s).add(k)), 2500 + n * 2200));
+    return () => timers.forEach(clearTimeout);
+  }, [paras, quiet]);
   return (
     <div className="flex flex-col gap-5">
       <h2 className="retro text-base text-primary md:text-xl">{payload.title}</h2>
@@ -396,7 +413,7 @@ function Recording({ payload }: { payload: SecretPayload }) {
         <audio controls preload="metadata" src={asset(payload.audio)} onError={() => setAudioOk(false)} className="w-full" />
       ) : null}
       <PromptCard className="flex flex-col gap-5">
-        <RecordedText paras={paras} budget={null} edited={new Set()} />
+        <RecordedText paras={paras} budget={null} edited={edited} allEdited={quiet} quiet={quiet} />
       </PromptCard>
     </div>
   );
@@ -422,7 +439,10 @@ export function SecretBox({
   useEffect(() => {
     let live = true;
     Promise.all(opened.map((c) => openSecret(c, lock))).then((all) => {
-      if (live) setPayloads(all.filter((p): p is SecretPayload => Boolean(p)));
+      if (!live) return;
+      // Several spellings open the same recording: show each recording once.
+      const seen = new Set<string>();
+      setPayloads(all.filter((p): p is SecretPayload => Boolean(p) && !seen.has(p!.title) && Boolean(seen.add(p!.title))));
     });
     return () => {
       live = false;
@@ -442,12 +462,11 @@ export function SecretBox({
           label={SECRET_COPY.label}
           nudges={[SECRET_COPY.notYet]}
           submitLabel="Unlock"
-          inputMode="numeric"
           onSubmit={async (typed) => {
             const p = await openSecret(typed, lock);
             if (!p) return false;
             const code = normalize(typed);
-            if (!opened.includes(code)) onUnlock(code);
+            if (!opened.includes(code) && !payloads.some((x) => x.title === p.title)) onUnlock(code);
             return true;
           }}
         />

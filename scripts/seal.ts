@@ -36,9 +36,15 @@ const transcript = await sealPassage(src.transcript.key, src.transcript.text);
 // Each lock can hold many codes. Every code opens its own recording.
 async function sealLock(entries) {
   const out = [];
+  const seen = new Set();
   for (const e of entries ?? []) {
     if (!e || !e.code) continue;
-    out.push(await sealPassage(e.code, JSON.stringify({ title: e.title, body: e.body, audio: e.audio ?? null })));
+    const n = normalize(e.code);
+    if (seen.has(n)) continue; // "Dane's" and "danes" are the same code once normalized
+    seen.add(n);
+    out.push(
+      await sealPassage(e.code, JSON.stringify({ title: e.title, body: e.body, audio: e.audio ?? null, quiet: Boolean(e.quiet) })),
+    );
   }
   return out;
 }

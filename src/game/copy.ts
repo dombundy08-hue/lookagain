@@ -45,7 +45,7 @@ export const FINAL_NUDGES = [
 ];
 
 export const SECRET_COPY = {
-  label: "Code from the tape",
+  label: "Your answer",
   notYet: "That doesn't fit. Not yet.",
   back: "Back to the recording",
   unlocked: "Unlocked",

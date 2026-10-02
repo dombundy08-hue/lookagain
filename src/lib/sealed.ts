@@ -17,6 +17,8 @@ export interface SecretPayload {
   title: string;
   body: string;
   audio: string | null;
+  /** A transcript whose changed words look like ordinary text. */
+  quiet?: boolean;
 }
 
 export type Lock = "story" | "title";
