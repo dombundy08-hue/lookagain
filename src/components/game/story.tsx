@@ -220,16 +220,20 @@ export function RevealStage({ stage, progress, update, go }: StageProps<"reveal"
       setPhase("done");
       return;
     }
+    // The header (CURIOSITY HOUR... Speaker: KEEPER.) appears at once; the voice starts with
+    // "You found the word." and the rest of the words follow it.
+    const header = paras[0]?.header ? paras[0].pieces.reduce((n, x) => n + pieceLength(x), 0) : 0;
+    const body = total - header;
     const audio = audioRef.current;
     if (audio && audioOk.current) void audio.play().catch(() => (audioOk.current = false));
     const started = performance.now();
     const id = window.setInterval(() => {
       let chars: number;
       if (audio && audioOk.current && audio.duration && Number.isFinite(audio.duration)) {
-        chars = Math.round((audio.currentTime / audio.duration) * total);
+        chars = header + Math.round((audio.currentTime / audio.duration) * body);
         if (audio.ended) chars = total;
       } else {
-        chars = Math.round(((performance.now() - started) / 1000) * 17);
+        chars = header + Math.round(((performance.now() - started) / 1000) * 17);
       }
       setBudget(Math.min(total, chars));
       if (chars >= total && (!audio || !audioOk.current || audio.ended || !audio.duration)) {
@@ -238,7 +242,7 @@ export function RevealStage({ stage, progress, update, go }: StageProps<"reveal"
       }
     }, 60);
     return () => window.clearInterval(id);
-  }, [phase, text, total, reduce]);
+  }, [phase, text, total, reduce, paras]);
 
   useEffect(() => {
     if (phase === "done" && !progress.revealSeen) update({ revealSeen: true });
