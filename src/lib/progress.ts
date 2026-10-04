@@ -41,6 +41,8 @@ export interface Progress {
   slips: string[];
   /** The furthest page reached, so secrets can be hunted again on any page already seen. */
   furthest: string;
+  /** Recordings that have played all the way through once (they can be skipped after that). */
+  heard: string[];
 }
 
 export const FRESH: Progress = {
@@ -66,6 +68,7 @@ export const FRESH: Progress = {
   music: true,
   slips: [],
   furthest: "difficulty",
+  heard: [],
 };
 
 function load(): Progress {

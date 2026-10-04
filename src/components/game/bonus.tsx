@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { STAR_TOTAL } from "@/game/stages";
 import { playAlarm } from "@/lib/audio";
 import { FileText, GripVertical, Radio, Star, Tv } from "lucide-react";
 
@@ -36,8 +37,8 @@ function addStar(stars: string[], id: string) {
 
 export function StarCount({ count }: { count: number }) {
   return (
-    <span className="retro flex items-center gap-2 text-[10px] text-primary" aria-label={`${count} bonus stars`}>
-      <Star className="size-4 fill-current" aria-hidden="true" /> {count}
+    <span className="retro flex items-center gap-2 text-[10px] text-primary" aria-label={`${count} of ${STAR_TOTAL} stars`}>
+      <Star className="size-4 fill-current" aria-hidden="true" /> {count}/{STAR_TOTAL}
     </span>
   );
 }

@@ -119,7 +119,7 @@ export default function TopBar({
           </Button>
           <HuntTimeline className="py-10" />
           {bonuses.length ? (
-            <div className="mx-auto flex max-w-3xl flex-wrap gap-4 px-4 pb-10">
+            <div className="mx-auto mt-6 flex max-w-3xl flex-wrap gap-4 border-t-2 border-border px-4 pt-8 pb-10">
               {bonuses.includes("tape") ? (
                 <Button variant="secondary" size="sm" onClick={() => setBonusOpen("tape")}>
                   Bonus Reel

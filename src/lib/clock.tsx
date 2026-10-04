@@ -16,6 +16,10 @@ interface ClockControl {
   stop: () => number;
   /** Current ms left. */
   now: () => number;
+  /** Hold the clock while a hint is open; resume picks up from the same time. */
+  pause: () => void;
+  resume: () => void;
+  paused: boolean;
   running: boolean;
 }
 
@@ -42,6 +46,7 @@ export function ClockProvider({
   const [running, setRunning] = useState(initialRunning && (initialMs ?? 0) > 0);
   const [leftMs, setLeftMs] = useState<number | null>(initialMs);
   const [bump, setBump] = useState<ClockTime["bump"]>(null);
+  const [paused, setPaused] = useState(false);
   const leftRef = useRef(initialMs ?? 0);
   const endAt = useRef<number | null>(null);
   // A clock that was running when the page closed picks up from what was saved.
@@ -84,7 +89,27 @@ export function ClockProvider({
   const control = useMemo<ClockControl>(
     () => ({
       running,
+      paused,
       now,
+      pause() {
+        if (endAt.current === null) return;
+        const l = now();
+        leftRef.current = l;
+        endAt.current = null;
+        setLeftMs(l);
+        setRunning(false);
+        setPaused(true);
+        saveRef.current(l, true);
+      },
+      resume() {
+        setPaused((was) => {
+          if (was && leftRef.current > 0) {
+            endAt.current = performance.now() + leftRef.current;
+            setRunning(true);
+          }
+          return false;
+        });
+      },
       start(ms) {
         leftRef.current = ms;
         endAt.current = performance.now() + ms;
@@ -120,7 +145,7 @@ export function ClockProvider({
         return l;
       },
     }),
-    [running, now],
+    [running, paused, now],
   );
 
   return (
@@ -180,7 +205,7 @@ export function ClockFace({ ms, label = "Clock", running = true }: { ms: number;
 /** The shared clock as a bar, with a flash when time is added. */
 export function SharedClockBar({ note }: { note?: ReactNode }) {
   const { leftMs, bump } = useClockTime();
-  const { running } = useClock();
+  const { running, paused } = useClock();
   const [flash, setFlash] = useState<string | null>(null);
   useEffect(() => {
     if (!bump) return;
@@ -198,6 +223,7 @@ export function SharedClockBar({ note }: { note?: ReactNode }) {
             {flash}
           </span>
         ) : null}
+        {paused ? <span className="retro blink text-xs text-primary">PAUSED</span> : null}
         {note ? <span className="text-lg text-muted-foreground">{note}</span> : null}
       </div>
     </div>

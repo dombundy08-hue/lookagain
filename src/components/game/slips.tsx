@@ -229,7 +229,8 @@ function SlipPuzzle({ id, onSolved }: { id: string; onSolved: () => void }) {
         e.preventDefault();
         if (!value.trim() || busy) return;
         setBusy(true);
-        const ok = await check(`slip-${id}`, value);
+        // The counting puzzle counts every "look" on the screen, so the wrong-answer line adds one more.
+        const ok = await check(puzzle.kind === "count" && wrong > 0 ? `slip-${id}-after` : `slip-${id}`, value);
         setBusy(false);
         if (ok) onSolved();
         else setWrong((w) => w + 1);

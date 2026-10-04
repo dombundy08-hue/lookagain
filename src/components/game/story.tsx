@@ -63,8 +63,8 @@ function toParas(text: string): Para[] {
 }
 
 /** How much of the body has been said by time t: follows the voice word by word when the timing fits this text. */
-function voicedChars(t: number, duration: number, body: number) {
-  const sync = tapeSync as [number, number][];
+function voicedChars(t: number, duration: number, body: number, key: string) {
+  const sync = ((tapeSync as unknown as Record<string, [number, number][]>)[key] ?? []);
   if (sync.length < 2 || sync[sync.length - 1][0] !== body) return Math.round((t / duration) * body);
   let i = 0;
   while (i < sync.length - 1 && sync[i + 1][1] <= t) i++;
@@ -197,6 +197,25 @@ export function RevealStage({ stage, progress, update, go }: StageProps<"reveal"
   const [phase, setPhase] = useState<"nosignal" | "static" | "play" | "done">(
     progress.revealSeen ? "done" : reduce ? "play" : "nosignal",
   );
+  // Once they've heard it all the way through, a replay can be skipped.
+  const canSkip = progress.revealSeen && phase !== "done";
+  const skip = () => {
+    audioRef.current?.pause();
+    setStatic(0);
+    setPhase("done");
+  };
+  const replay = () => {
+    const a = audioRef.current;
+    if (a) {
+      a.pause();
+      a.currentTime = 0;
+    }
+    flipTimers.current.forEach(clearTimeout);
+    scheduled.current.clear();
+    setEdited(new Set());
+    setBudget(0);
+    setPhase(reduce ? "play" : "nosignal");
+  };
   const [budget, setBudget] = useState(0);
   const [edited, setEdited] = useState<Set<string>>(new Set());
   const [posterOk, setPosterOk] = useState(true);
@@ -250,7 +269,7 @@ export function RevealStage({ stage, progress, update, go }: StageProps<"reveal"
     const id = window.setInterval(() => {
       let chars: number;
       if (audio && audioOk.current && audio.duration && Number.isFinite(audio.duration)) {
-        chars = header + voicedChars(audio.currentTime, audio.duration, body);
+        chars = header + voicedChars(audio.currentTime, audio.duration, body, "game");
         if (audio.ended) chars = total;
       } else {
         chars = header + Math.round(((performance.now() - started) / 1000) * 17);
@@ -311,6 +330,20 @@ export function RevealStage({ stage, progress, update, go }: StageProps<"reveal"
         className={done && voiceOk ? "w-full" : "hidden"}
         aria-label="The Keeper reads the recording. The words are on screen too."
       />
+      {canSkip ? (
+        <div>
+          <Button variant="secondary" size="sm" onClick={skip}>
+            Skip <span aria-hidden="true">&#9654;&#9654;</span>
+          </Button>
+        </div>
+      ) : null}
+      {done ? (
+        <div>
+          <Button variant="secondary" size="sm" onClick={replay}>
+            Play the tape again
+          </Button>
+        </div>
+      ) : null}
       {phase === "nosignal" || phase === "static" ? (
         <div className="pixel-border relative m-1 flex aspect-video items-center justify-center overflow-hidden bg-black">
           {phase === "static" ? <Snow level={1} /> : null}
@@ -405,30 +438,181 @@ export function TapeStage({ stage, progress, go }: StageProps<"tape">) {
   );
 }
 
-/** One unlocked recording: title, optional voice, and the text (with any words the creature edits). */
-function Recording({ payload }: { payload: SecretPayload }) {
-  const [audioOk, setAudioOk] = useState(Boolean(payload.audio));
+/** One unlocked recording. A quiet transcript just sits there; any other one plays like the game tape. */
+function Recording({ payload, heard, onHeard }: { payload: SecretPayload; heard: boolean; onHeard: () => void }) {
   const paras = useMemo(() => toParas(payload.body), [payload.body]);
-  const quiet = Boolean(payload.quiet);
-  const [edited, setEdited] = useState<Set<string>>(new Set());
+  if (payload.quiet) {
+    return (
+      <div className="flex flex-col gap-5">
+        <h2 className="retro text-base text-primary md:text-xl">{payload.title}</h2>
+        <PromptCard className="flex flex-col gap-5">
+          <RecordedText paras={paras} budget={null} edited={new Set()} allEdited quiet />
+        </PromptCard>
+      </div>
+    );
+  }
+  return <PlayedRecording payload={payload} paras={paras} heard={heard} onHeard={onHeard} />;
+}
 
-  // Unless it's a quiet transcript, the changed words show what he said first, then rewrite themselves, one by one.
+const SYNC_KEY: Record<string, string> = { "Second Reel": "second" };
+
+/** NO SIGNAL, static with the song cut, then the voice with the words following it and the edits flipping. */
+function PlayedRecording({ payload, paras, heard, onHeard }: { payload: SecretPayload; paras: Para[]; heard: boolean; onHeard: () => void }) {
+  const total = useMemo(() => paras.reduce((n, p) => n + p.pieces.reduce((m, x) => m + pieceLength(x), 0), 0), [paras]);
+  const reduce = prefersReducedMotion();
+  const [phase, setPhase] = useState<"nosignal" | "static" | "play" | "done">(heard ? "done" : reduce ? "play" : "nosignal");
+  const [budget, setBudget] = useState(0);
+  const [edited, setEdited] = useState<Set<string>>(new Set());
+  const [voiceOk, setVoiceOk] = useState(Boolean(payload.audio));
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const audioOk = useRef(Boolean(payload.audio));
+  const bottomRef = useRef<HTMLDivElement>(null);
+  const scheduled = useRef(new Set<string>());
+  const flipTimers = useRef<number[]>([]);
+
   useEffect(() => {
-    if (quiet) return;
-    const keys: string[] = [];
-    paras.forEach((para, pi) => para.pieces.forEach((piece, i) => piece.kind === "edit" && keys.push(`${pi}-${i}`)));
-    const timers = keys.map((k, n) => window.setTimeout(() => setEdited((s) => new Set(s).add(k)), 2500 + n * 2200));
-    return () => timers.forEach(clearTimeout);
-  }, [paras, quiet]);
+    if (phase === "static" || phase === "play") holdMusic(true);
+  }, [phase]);
+  useEffect(() => () => {
+    holdMusic(false);
+    flipTimers.current.forEach(clearTimeout);
+  }, []);
+
+  useEffect(() => {
+    if (phase !== "nosignal") return;
+    const t = window.setTimeout(() => setPhase("static"), 5000);
+    return () => window.clearTimeout(t);
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "static") return;
+    setStatic(1);
+    const t = window.setTimeout(() => {
+      setStatic(0);
+      setPhase("play");
+    }, 1800);
+    return () => {
+      window.clearTimeout(t);
+      setStatic(0);
+    };
+  }, [phase]);
+
+  useEffect(() => {
+    if (phase !== "play") return;
+    if (reduce) {
+      setBudget(total);
+      setPhase("done");
+      return;
+    }
+    const header = paras[0]?.header ? paras[0].pieces.reduce((n, x) => n + pieceLength(x), 0) : 0;
+    const body = total - header;
+    const audio = audioRef.current;
+    if (audio && audioOk.current) void audio.play().catch(() => (audioOk.current = false));
+    const started = performance.now();
+    const id = window.setInterval(() => {
+      let chars: number;
+      if (audio && audioOk.current && audio.duration && Number.isFinite(audio.duration)) {
+        chars = header + voicedChars(audio.currentTime, audio.duration, body, SYNC_KEY[payload.title] ?? "");
+        if (audio.ended) chars = total;
+      } else {
+        chars = header + Math.round(((performance.now() - started) / 1000) * 17);
+      }
+      setBudget(Math.min(total, chars));
+      if (chars >= total && (!audio || !audioOk.current || audio.ended || !audio.duration)) {
+        window.clearInterval(id);
+        setPhase("done");
+      }
+    }, 60);
+    return () => window.clearInterval(id);
+  }, [phase, total, reduce, paras, payload.title]);
+
+  useEffect(() => {
+    if (phase === "done" && !heard) onHeard();
+  }, [phase, heard, onHeard]);
+
+  useEffect(() => {
+    let at = 0;
+    paras.forEach((para, pi) =>
+      para.pieces.forEach((piece, i) => {
+        at += pieceLength(piece);
+        const key = `${pi}-${i}`;
+        if (piece.kind === "edit" && budget >= at && !scheduled.current.has(key)) {
+          scheduled.current.add(key);
+          flipTimers.current.push(window.setTimeout(() => setEdited((s) => new Set(s).add(key)), 900));
+        }
+      }),
+    );
+  }, [budget, paras]);
+
+  useEffect(() => {
+    if (phase === "play") bottomRef.current?.scrollIntoView({ block: "end", behavior: "smooth" });
+  }, [budget, phase]);
+
+  const done = phase === "done";
+  const skip = () => {
+    audioRef.current?.pause();
+    setStatic(0);
+    setPhase("done");
+  };
+  const replay = () => {
+    const a = audioRef.current;
+    if (a) {
+      a.pause();
+      a.currentTime = 0;
+    }
+    flipTimers.current.forEach(clearTimeout);
+    scheduled.current.clear();
+    setEdited(new Set());
+    setBudget(0);
+    setPhase(reduce ? "play" : "nosignal");
+  };
+
   return (
     <div className="flex flex-col gap-5">
       <h2 className="retro text-base text-primary md:text-xl">{payload.title}</h2>
-      {payload.audio && audioOk ? (
-        <audio controls preload="metadata" src={asset(payload.audio)} onError={() => setAudioOk(false)} className="w-full" />
+      {payload.audio ? (
+        <audio
+          ref={audioRef}
+          preload="auto"
+          controls={done && voiceOk}
+          src={asset(payload.audio)}
+          onError={() => {
+            audioOk.current = false;
+            setVoiceOk(false);
+          }}
+          className={done && voiceOk ? "w-full" : "hidden"}
+        />
       ) : null}
-      <PromptCard className="flex flex-col gap-5">
-        <RecordedText paras={paras} budget={null} edited={edited} allEdited={quiet} quiet={quiet} />
-      </PromptCard>
+      {heard && !done ? (
+        <div>
+          <Button variant="secondary" size="sm" onClick={skip}>
+            Skip <span aria-hidden="true">&#9654;&#9654;</span>
+          </Button>
+        </div>
+      ) : null}
+      {done ? (
+        <div>
+          <Button variant="secondary" size="sm" onClick={replay}>
+            Play it again
+          </Button>
+        </div>
+      ) : null}
+      {phase === "nosignal" || phase === "static" ? (
+        <div className="pixel-border relative m-1 flex aspect-video items-center justify-center overflow-hidden bg-black">
+          {phase === "static" ? <Snow level={1} /> : null}
+          {phase === "nosignal" ? <span className="retro blink text-xs text-muted-foreground">NO SIGNAL</span> : null}
+        </div>
+      ) : (
+        <PromptCard className="flex flex-col gap-5">
+          <RecordedText paras={paras} budget={done ? null : budget} edited={done ? new Set() : edited} allEdited={done} />
+          {phase === "play" ? (
+            <span className="blink text-primary" aria-hidden="true">
+              _
+            </span>
+          ) : null}
+        </PromptCard>
+      )}
+      <div ref={bottomRef} />
     </div>
   );
 }
@@ -442,11 +626,15 @@ export function SecretBox({
   opened,
   onUnlock,
   footer,
+  heard = [],
+  onHeard,
 }: {
   lock: LockKind;
   opened: string[];
   onUnlock: (normalizedCode: string) => void;
   footer?: ReactNode;
+  heard?: string[];
+  onHeard?: (title: string) => void;
 }) {
   const [payloads, setPayloads] = useState<SecretPayload[]>([]);
 
@@ -466,11 +654,13 @@ export function SecretBox({
   return (
     <div className="flex flex-col gap-8">
       {payloads.map((p) => (
-        <Recording key={p.title} payload={p} />
+        <Recording key={p.title} payload={p} heard={heard.includes(p.title)} onHeard={() => onHeard?.(p.title)} />
       ))}
+      {/* Each lock opens one recording. Once it's open, there's nothing left to unlock here. */}
+      {payloads.length || opened.length ? null : (
       <PromptCard className={cn("flex flex-col gap-6")}>
         <p className="retro flex items-center gap-3 text-[10px] uppercase text-primary">
-          <Lock className="size-4" aria-hidden="true" /> {payloads.length ? "Another code?" : "Locked"}
+          <Lock className="size-4" aria-hidden="true" /> Locked
         </p>
         <AnswerForm
           label={SECRET_COPY.label}
@@ -485,6 +675,7 @@ export function SecretBox({
           }}
         />
       </PromptCard>
+      )}
       {footer}
     </div>
   );
@@ -497,6 +688,8 @@ export function SecretStage({ stage, progress, update, go }: StageProps<"secret"
         lock="story"
         opened={progress.unlocked}
         onUnlock={(code) => update((p) => ({ unlocked: [...p.unlocked, code] }))}
+        heard={progress.heard}
+        onHeard={(title) => update((p) => (p.heard.includes(title) ? {} : { heard: [...p.heard, title] }))}
         footer={
           <div>
             <Button variant="ghost" size="sm" onClick={() => go("reveal")}>

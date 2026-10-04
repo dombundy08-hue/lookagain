@@ -272,7 +272,12 @@ function Game({
             <SecretBox
               lock="title"
               opened={progress.titleUnlocked}
-              onUnlock={(code) => update((p) => ({ titleUnlocked: [...p.titleUnlocked, code] }))}
+              onUnlock={(code) =>
+                update((p) => ({
+                  titleUnlocked: [...p.titleUnlocked, code],
+                  stars: p.stars.includes("last-secret") ? p.stars : [...p.stars, "last-secret"],
+                }))
+              }
             />
           </div>
         </dialog>
@@ -315,7 +320,7 @@ function Game({
             <main key={visiting.id}>
               <Renderer
                 stage={visiting}
-                progress={visiting.id === "riddles" ? { ...progress, riddleIndex: 0 } : progress}
+                progress={visiting.id === "riddles" ? { ...progress, riddleIndex: 1 } : progress}
                 update={noop}
                 next={noop}
                 go={noop}

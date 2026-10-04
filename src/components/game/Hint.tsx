@@ -97,6 +97,16 @@ function SmallMark({
   );
 }
 
+/** Secret 6: once the clock riddle is answered, a "?" turns up on the riddle page. */
+export function SaidMark() {
+  const { find } = useSlips();
+  return (
+    <div className="flex justify-end">
+      <SmallMark id="said" onPress={() => find("said")} className="text-sm text-[#c6a6ff] opacity-80" />
+    </div>
+  );
+}
+
 /** Secret 8: the "?" right after "CH 3" in the corner of the title screen. */
 export function ChannelMark() {
   const { find } = useSlips();

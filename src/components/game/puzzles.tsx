@@ -8,6 +8,7 @@ import type { PromptItem } from "@/game/stages";
 import { formatClock, useClock, useClockTime } from "@/lib/clock";
 import { check, normalize, openTranscript } from "@/lib/sealed";
 import { AnswerForm, Counter, GoodLine, KeeperLine, PromptCard, StageShell, type StageProps } from "./shared";
+import { SaidMark } from "./Hint";
 
 export function RiddlesStage({ stage, progress, update, next }: StageProps<"riddles">) {
   const [solved, setSolved] = useState<string | null>(null);
@@ -38,6 +39,7 @@ export function RiddlesStage({ stage, progress, update, next }: StageProps<"ridd
   const item = stage.items[index];
   return (
     <StageShell title="Round One" intro={index === 0 ? stage.intro : undefined} mark={stage.id}>
+      {index >= 1 ? <SaidMark /> : null}
       <PromptCard className="flex flex-col gap-6">
         <Counter index={index} total={stage.items.length} />
         <p className="text-3xl leading-snug md:text-4xl">{item.prompt}</p>
@@ -70,19 +72,41 @@ export function RiddlesStage({ stage, progress, update, next }: StageProps<"ridd
 /** An earned hint, in glowing ink. Only exists if all five opening riddles were right first try. */
 function EarnedHint({ text }: { text: string }) {
   const [open, setOpen] = useState(false);
+  const clock = useClock();
+  // The clock stops while the hint is open, and starts again the moment they click out of it.
+  const show = () => {
+    clock.pause();
+    setOpen(true);
+  };
+  const hide = () => {
+    setOpen(false);
+    clock.resume();
+  };
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && hide();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
   return (
     <div className="flex flex-col items-start gap-3">
-      <Button variant="secondary" size="sm" onClick={() => setOpen((o) => !o)} aria-expanded={open}>
+      <Button variant="secondary" size="sm" onClick={open ? hide : show} aria-expanded={open}>
         <Lightbulb aria-hidden="true" /> {RECALL_COPY.hint}
       </Button>
       {open ? (
-        <p
-          role="note"
-          className="keeper-voice glitch-in border-l-2 border-[#c6a6ff] pl-4 text-xl leading-snug text-[#c6a6ff] md:text-2xl"
-          style={{ textShadow: "0 0 10px rgb(198 166 255 / 0.75), 0 0 2px rgb(198 166 255 / 0.9)" }}
-        >
-          {text}
-        </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-6" onClick={hide} role="dialog" aria-label="Hint">
+          <div className="pixel-border flex max-w-xl flex-col gap-4 bg-background p-6">
+            <p className="retro text-[10px] uppercase text-primary">Clock paused. Click anywhere to go back.</p>
+            <p
+              role="note"
+              className="keeper-voice glitch-in border-l-2 border-[#c6a6ff] pl-4 text-2xl leading-snug text-[#c6a6ff]"
+              style={{ textShadow: "0 0 10px rgb(198 166 255 / 0.75), 0 0 2px rgb(198 166 255 / 0.9)" }}
+            >
+              {text}
+            </p>
+          </div>
+        </div>
       ) : null}
     </div>
   );
@@ -105,11 +129,11 @@ export function RecallStage({ stage, progress, update, next }: StageProps<"recal
   const item = set[index] as PromptItem | undefined;
   const finished = !item;
   const live = progress.recallLive;
-  const ranOut = live && !finished && !solved && !clock.running && (leftMs ?? 0) <= 0;
+  const ranOut = live && !finished && !solved && !clock.running && !clock.paused && (leftMs ?? 0) <= 0;
 
   // A live attempt whose clock was paused (a reload) picks up where it left off.
   useEffect(() => {
-    if (live && !finished && !clock.running && (leftMs ?? 0) > 0) clock.start(leftMs as number);
+    if (live && !finished && !clock.running && !clock.paused && (leftMs ?? 0) > 0) clock.start(leftMs as number);
   }, [live, finished, clock, leftMs]);
 
   // A question with minSeconds (the Harlan one) tops the clock up to at least that much.

@@ -176,9 +176,9 @@ export const BONUS_FILE = {
  * Small puzzles on the last five secrets. Answers are sealed (ids "slip-<secret id>").
  * kind: "cipher" uses the Flag Clock card; "mirror" shows the clue flipped; others are plain.
  */
-export const SLIP_PUZZLES: Record<string, { kind: "cipher" | "scramble" | "mirror" | "count"; prompt: string; clue: string }> = {
+export const SLIP_PUZZLES: Record<string, { kind: "cipher" | "numbers" | "mirror" | "count"; prompt: string; clue: string }> = {
   "m-recall": { kind: "cipher", prompt: "Some of my notes are in code. Get out the Flag Clock card.", clue: "8:00   9:00   4:00   5:00" },
-  "m-acrostic": { kind: "scramble", prompt: "These letters fell out of order. Put them back.", clue: "T  C  E  R  E  S" },
+  "m-acrostic": { kind: "numbers", prompt: "Every letter has a number. A is 1, B is 2, C is 3, all the way to Z. What do these spell?", clue: "19   5   3   18   5   20" },
   "m-final": { kind: "mirror", prompt: "This one was written the wrong way round. What does it say?", clue: "NOTICED" },
   "m-tape": {
     kind: "count",

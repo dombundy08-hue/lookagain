@@ -204,6 +204,8 @@ export const MILESTONES = ["riddles", "recall", "final", "reveal"] as const;
 
 /** Beating any of these sections earns a star (the clock and Look Again stars are earned separately). */
 export const SECTION_STARS = ["riddles", "tuner", "rewind", "order", "recall", "final"] as const;
+/** Every star there is: a star per section, beating the clock, Look Again, all the secrets, and the last secret on the title screen. */
+export const STAR_TOTAL = SECTION_STARS.length + 4;
 
 /** Stages that run on the shared clock. */
 export const CLOCK_STAGES = ["tuner", "rewind", "order"] as const;
