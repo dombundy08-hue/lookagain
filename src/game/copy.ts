@@ -72,7 +72,7 @@ export const RECALL_COPY = {
   ready: "We're ready",
   ranOut: "The tape ran out.",
   rewind: "Rewind to the start",
-  rewound: (n: number) => `Rewind ${n}. New questions. Same word at the end.`,
+  rewound: (n: number) => `Try ${n + 1}. Same questions. Faster this time.`,
   hint: "Hint",
 };
 

@@ -90,7 +90,7 @@ function EarnedHint({ text }: { text: string }) {
 
 /**
  * The timed WATCHER round, on the shared clock: carry-over plus two minutes, plus twenty seconds
- * per right answer. If the clock runs out, the tape rewinds to question one with a new set.
+ * per right answer. If the clock runs out, the round starts again from question one, same questions.
  */
 export function RecallStage({ stage, progress, update, next }: StageProps<"recall">) {
   const clock = useClock();
@@ -99,7 +99,8 @@ export function RecallStage({ stage, progress, update, next }: StageProps<"recal
   const flooredFor = useRef<string | null>(null);
 
   const hintsEarned = progress.riddleIndex >= 5 && progress.riddleMisses === 0;
-  const set: PromptItem[] = stage.sets[progress.rewinds % stage.sets.length];
+  // One set of questions. Running out of time just starts the same round again.
+  const set: PromptItem[] = stage.sets[0];
   const index = progress.recallIndex;
   const item = set[index] as PromptItem | undefined;
   const finished = !item;
@@ -166,14 +167,12 @@ export function RecallStage({ stage, progress, update, next }: StageProps<"recal
   }
 
   if (ranOut) {
-    const more = progress.rewinds + 1 < stage.maxRewinds;
     return (
       <StageShell title="Round Two" mark={stage.id}>
         <PromptCard className="flex flex-col items-start gap-6 [--pb:var(--destructive)]">
           <p className="keeper-voice glitch-in text-3xl text-destructive">{RECALL_COPY.ranOut}</p>
           <p className="text-xl text-muted-foreground">
-            Back to question one. New questions, same word at the end.
-            {more ? "" : " The tape has rewound as far as it goes, so the questions start over from the first set."}
+            Back to question one. Same questions. Try again.
           </p>
           <Button
             autoFocus

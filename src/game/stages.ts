@@ -39,7 +39,7 @@ export type StageDef =
       startBonus: number;
       perCorrect: number;
       maxRewinds: number;
-      /** Up to 20 question sets. A rewind moves to the next set. Every set's answers spell WATCHER. */
+      /** Question sets; only the first is played. Its answers spell WATCHER. */
       sets: PromptItem[][];
     })
   | (Base & { type: "acrostic"; intro: string })
