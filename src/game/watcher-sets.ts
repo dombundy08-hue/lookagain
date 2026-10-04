@@ -4,7 +4,7 @@ import type { PromptItem } from "./stages";
 
 export const WATCHER_SETS: PromptItem[][] = [
   [
-    { id: "s01-w", prompt: "The segment notes from the first tape say one crew stays off camera unless called. Which one?", hint: "Read the second line of the segment notes again. It's a crew that handles costumes.", },
+    { id: "s01-w", prompt: "The segment notes say to put the files in the bottom ___ drawer.", hint: "Read the reminder to the crew again. A big piece of furniture.", },
     { id: "s01-a", prompt: "Finish the line. \"Look ___. The secret's never hiding.\"", hint: "Say the catchphrase out loud. All of it.", },
     { id: "s01-t", prompt: "On the second tape I had a little emergency and told you to stay dry. Where did that send you?", hint: "\"I always get held up there.\"", },
     { id: "s01-c", prompt: "Corporate wanted the show to move off tape and onto what?", hint: "Round, shiny, music inside.", },
@@ -85,7 +85,7 @@ export const WATCHER_SETS: PromptItem[][] = [
     { id: "s09-r", prompt: "Vance: \"A CD that jumps straight to the track, no ___, no waiting around.\"", hint: "What you do to a tape to hear it again.", },
   ],
   [
-    { id: "s10-w", prompt: "The segment notes: \"stacked flat and kept low, same as it is every ___.\"", hint: "Seven days.", },
+    { id: "s10-w", prompt: "The segment notes: \"but ___ out for the broken one.\"", hint: "What you do with your eyes. Also something on your wrist.", },
     { id: "s10-a", prompt: "First tape, after you came back from the picture: \"Perfect. That's ___.\"", hint: "A big word for really, really good.", },
     { id: "s10-t", prompt: "The invisible-ink letter: \"some machine off ___ and humming to itself.\"", hint: "What clothes do in a dryer.", },
     { id: "s10-c", prompt: "Segment notes, 3:05: \"___ open.\"", hint: "The opposite of hot.", },

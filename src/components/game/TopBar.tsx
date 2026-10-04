@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from "react";
-import { Eye, Feather, RotateCcw, ScrollText, Volume2, VolumeX, X } from "lucide-react";
+import { Eye, Feather, House, RotateCcw, ScrollText, Volume2, VolumeX, X } from "lucide-react";
 
 import { Button } from "@/components/ui/8bit-button";
 import { DIFFICULTY_LOCKED, SLIPS } from "@/game/copy";
@@ -18,6 +18,7 @@ export default function TopBar({
   music,
   onToggleMusic,
   onStartOver,
+  onHome,
   below,
   bonuses = [],
 }: {
@@ -26,6 +27,7 @@ export default function TopBar({
   music: boolean;
   onToggleMusic: () => void;
   onStartOver: () => void;
+  onHome: () => void;
   /** Extra row under the bar (the shared clock). */
   below?: ReactNode;
   /** Bonuses earned, re-openable from the tape log. */
@@ -72,14 +74,22 @@ export default function TopBar({
         <div className="flex items-center gap-4">
           <span className="retro hidden text-[8px] text-destructive md:inline">{DIFFICULTY_LOCKED}</span>
           <StarCount count={stars} />
-          <span className="retro flex items-center gap-2 text-[10px] text-muted-foreground" aria-label={`${found.length} of ${SLIPS.length} slips found`}>
+          <button
+            type="button"
+            onClick={() => dialogRef.current?.showModal()}
+            className="retro flex cursor-pointer items-center gap-2 text-[10px] text-muted-foreground hover:text-primary"
+            aria-label={`${found.length} of ${SLIPS.length} secrets found. Open the list.`}
+          >
             <Feather className="size-4" aria-hidden="true" /> {found.length}
-          </span>
+          </button>
           <Button variant="ghost" size="sm" className="px-2" onClick={() => dialogRef.current?.showModal()} aria-label="Tape log">
             <ScrollText aria-hidden="true" />
           </Button>
           <Button variant="ghost" size="sm" className="px-2" onClick={onToggleMusic} aria-pressed={music} aria-label="Music">
             {music ? <Volume2 aria-hidden="true" /> : <VolumeX aria-hidden="true" />}
+          </Button>
+          <Button variant="secondary" onClick={onHome} aria-label="Home screen">
+            <House aria-hidden="true" /> Home
           </Button>
           <Button variant="ghost" size="sm" className="px-2" onClick={onStartOver} aria-label="Start over">
             <RotateCcw aria-hidden="true" />
@@ -101,7 +111,7 @@ export default function TopBar({
           <Button
             variant="ghost"
             size="sm"
-            className="absolute top-3 right-3 px-2"
+            className="absolute top-3 right-3 z-30 px-2"
             onClick={() => dialogRef.current?.close()}
             aria-label="Close"
           >

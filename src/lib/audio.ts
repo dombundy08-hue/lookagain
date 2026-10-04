@@ -222,6 +222,32 @@ function armUnlock() {
 export const AUDIO_EVENT = "lookagain-audio";
 
 /** True while the browser is still holding sound back, waiting for the first touch. */
+/** An old wind-up alarm clock: a fast double ring, a few times over. Plays even with the music muted. */
+export function playAlarm() {
+  if (!ctx || ctx.state !== "running") return;
+  const out = ctx.createGain();
+  out.gain.value = 0.16;
+  out.connect(ctx.destination);
+  const t0 = ctx.currentTime + 0.02;
+  for (let burst = 0; burst < 4; burst++) {
+    for (let k = 0; k < 6; k++) {
+      const at = t0 + burst * 0.75 + k * 0.075;
+      for (const freq of [1320, 1760]) {
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = "square";
+        osc.frequency.value = freq;
+        g.gain.setValueAtTime(0, at);
+        g.gain.linearRampToValueAtTime(0.5, at + 0.005);
+        g.gain.exponentialRampToValueAtTime(0.001, at + 0.06);
+        osc.connect(g).connect(out);
+        osc.start(at);
+        osc.stop(at + 0.07);
+      }
+    }
+  }
+}
+
 export function isAudioBlocked() {
   return !ctx || ctx.state !== "running";
 }

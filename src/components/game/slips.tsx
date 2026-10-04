@@ -350,8 +350,15 @@ function SlipDialog({
 }
 
 /** The found secrets, as journal lines. Unfound ones stay blank. */
+/** Sends them to the page a secret hides on. Returns a message instead when it can't. */
+export type Seek = (id: string) => string | null;
+const SeekContext = createContext<Seek | null>(null);
+export const SeekProvider = SeekContext.Provider;
+
 export function SlipJournal() {
   const { found } = useSlips();
+  const seek = useContext(SeekContext);
+  const [note, setNote] = useState<{ id: string; text: string } | null>(null);
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-3 px-4">
       <p className="retro flex items-center gap-3 text-[10px] uppercase text-muted-foreground">
@@ -365,6 +372,20 @@ export function SlipJournal() {
             {found.includes(s.id) ? (
               <span className="keeper-voice" style={{ color: UV, textShadow: UV_GLOW }}>
                 {s.text}
+              </span>
+            ) : seek ? (
+              <span className="flex flex-wrap items-baseline gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const msg = seek(s.id);
+                    setNote(msg ? { id: s.id, text: msg } : null);
+                  }}
+                  className="retro cursor-pointer text-[10px] text-muted-foreground underline underline-offset-4 hover:text-primary"
+                >
+                  . . . go look
+                </button>
+                {note?.id === s.id ? <span className="text-lg text-muted-foreground">{note.text}</span> : null}
               </span>
             ) : (
               <span className="text-muted-foreground" aria-label="Not found yet">

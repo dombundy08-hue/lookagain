@@ -88,12 +88,12 @@ export const STAGES: StageDef[] = [
     label: "Clock",
     intro: "From here on, the clock is running.",
     rules: [
-      "You start with a minute and a half.",
+      "You start with four and a half minutes.",
       "Every puzzle you finish adds ten seconds.",
       "The clock keeps running from one puzzle to the next.",
       "Finish all three with ten seconds to spare and something will be waiting for you. Fifteen, and there's more.",
     ],
-    seconds: 90,
+    seconds: 270,
     next: "tuner",
   },
   {
@@ -156,10 +156,10 @@ export const STAGES: StageDef[] = [
     id: "spot",
     type: "spot",
     label: "Look Again",
-    intro: "Two copies of the same page from the old program guide. One word changed. Fifteen seconds, then it's gone.",
+    intro: "Two copies of the same page from the old program guide. One word changed. Thirty seconds, then it's gone.",
     original: "Tonight on Curiosity Hour, the Keeper shows you how to look twice. Bring a friend. Bring a flashlight. Bring your eyes.",
     changed: "Tonight on Curiosity Hour, the Keeper shows you how to look twice. Bring a friend. Bring a flashlight. Leave your eyes.",
-    seconds: 15,
+    seconds: 30,
     next: "final",
   },
   {

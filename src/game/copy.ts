@@ -126,6 +126,13 @@ export const SLIPS: { id: string; text: string; mark?: string }[] = [
   { id: "m-home", mark: "home", text: "The answer is death." },
 ];
 
+export const SEEK_COPY = {
+  notYet: "You haven't reached that page yet.",
+  here: "It's somewhere on this page. Look around.",
+  looking: "Looking back",
+  back: "Back to where you were",
+};
+
 export const SLIP_COPY = {
   found: (n: number, total: number) => `Secret ${n} of ${total}`,
   /** Shown on the very last secret. */

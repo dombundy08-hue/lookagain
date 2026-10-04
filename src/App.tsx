@@ -14,7 +14,7 @@ import {
 import { ChannelMark, HomeMark, TwiceMark } from "@/components/game/Hint";
 import { AcrosticStage, FinalStage, RecallStage, RiddlesStage } from "@/components/game/puzzles";
 import type { StageProps } from "@/components/game/shared";
-import { SlipProvider, useSlips } from "@/components/game/slips";
+import { SeekProvider, SlipProvider, useSlips } from "@/components/game/slips";
 import {
   DifficultyStage,
   LogStage,
@@ -24,11 +24,25 @@ import {
   TapeStage,
 } from "@/components/game/story";
 import TopBar from "@/components/game/TopBar";
-import { CATCHPHRASE, CLOCK_COPY, HERO_SUBTITLE, START_OVER_CONFIRM } from "@/game/copy";
-import { CLOCK_STAGES, SECTION_STARS, STAGE_BY_ID, type StageType } from "@/game/stages";
+import { CATCHPHRASE, CLOCK_COPY, HERO_SUBTITLE, SEEK_COPY, SLIPS, START_OVER_CONFIRM } from "@/game/copy";
+import { CLOCK_STAGES, SECTION_STARS, STAGE_BY_ID, STAGES, type StageType } from "@/game/stages";
 import { AUDIO_EVENT, isAudioBlocked, restartMusic, setMusicEnabled, startMusic } from "@/lib/audio";
 import { ClockProvider, SharedClockBar, useClockTime } from "@/lib/clock";
 import { useProgress, type Progress } from "@/lib/progress";
+
+const ORDER = STAGES.map((s) => s.id);
+const rank = (id: string) => ORDER.indexOf(id === "tape" ? "reveal" : id);
+
+/** Where each secret hides: a page id, "title" for the title screen, or "log" for the tape log. */
+function hidingPlace(id: string): string {
+  if (["twice", "ch3", "eyes", "m-home"].includes(id)) return "title";
+  if (id === "red" || id === "ink") return "log";
+  if (id === "said") return "riddles";
+  const mark = SLIPS.find((s) => s.id === id)?.mark ?? "";
+  return mark === "tape" ? "reveal" : mark;
+}
+
+const noop = () => {};
 
 const THEME_URL = [`${import.meta.env.BASE_URL}media/theme-1.mp3`, `${import.meta.env.BASE_URL}media/theme-2.mp3`];
 
@@ -114,9 +128,10 @@ function Game({
   // The old separate "tape" page is now the finished reveal page.
   const stage = STAGE_BY_ID[progress.stageId === "tape" ? "reveal" : progress.stageId] ?? STAGE_BY_ID.difficulty;
 
+  const [visit, setVisit] = useState<string | null>(null);
   const go = useCallback(
     (stageId: string) => {
-      update({ stageId });
+      update((p) => ({ stageId, furthest: rank(stageId) > rank(p.furthest) ? stageId : p.furthest }));
       window.scrollTo({ top: 0 });
     },
     [update],
@@ -153,6 +168,26 @@ function Game({
     return () => window.removeEventListener(AUDIO_EVENT, sync);
   }, []);
 
+  // "Go look" in the secrets list: back to a page already reached, to hunt for its "?" again.
+  const furthest = rank(progress.furthest) > rank(progress.stageId) ? progress.furthest : progress.stageId;
+  const seek = useCallback(
+    (id: string) => {
+      const place = hidingPlace(id);
+      if (place === "log") return SEEK_COPY.here;
+      if (place !== "title" && rank(place) > rank(furthest)) return SEEK_COPY.notYet;
+      document.querySelectorAll("dialog[open]").forEach((d) => (d as HTMLDialogElement).close());
+      window.scrollTo({ top: 0 });
+      if (place === "title") {
+        setVisit(null);
+        setOnTitle(true);
+      } else {
+        setVisit(place === stage.id ? null : place);
+      }
+      return null;
+    },
+    [furthest, stage.id],
+  );
+
   const startOver = () => {
     if (!window.confirm(START_OVER_CONFIRM)) return;
     reset();
@@ -162,6 +197,7 @@ function Game({
 
   if (onTitle) {
     return (
+      <SeekProvider value={seek}>
       <main className="crt">
         <PixelRocketHero
           headline="Look Again"
@@ -241,11 +277,14 @@ function Game({
           </div>
         </dialog>
       </main>
+      </SeekProvider>
     );
   }
 
-  const Renderer = RENDERERS[stage.type];
+  const visiting = visit ? STAGE_BY_ID[visit] : null;
+  const Renderer = RENDERERS[(visiting ?? stage).type];
   return (
+    <SeekProvider value={seek}>
     <div className="crt min-h-svh">
       <TopBar
         stageId={stage.id}
@@ -256,12 +295,40 @@ function Game({
           update((p) => ({ music: !p.music }));
         }}
         onStartOver={startOver}
-        below={<ClockRow stageId={stage.id} recallLive={progress.recallLive} />}
+        onHome={() => {
+          setVisit(null);
+          setOnTitle(true);
+        }}
+        below={visiting ? undefined : <ClockRow stageId={stage.id} recallLive={progress.recallLive} />}
         bonuses={progress.bonuses}
       />
-      <main key={stage.id}>
-        <Renderer stage={stage} progress={progress} update={update} next={next} go={go} />
-      </main>
+      {visiting ? (
+        // A look back: the real page, but nothing on it can change the game, and its clock is a copy.
+        <>
+          <div className="mx-auto flex max-w-3xl flex-wrap items-center gap-4 px-4 pt-6">
+            <span className="retro text-[10px] uppercase text-muted-foreground">{SEEK_COPY.looking}</span>
+            <Button size="sm" onClick={() => setVisit(null)}>
+              {SEEK_COPY.back}
+            </Button>
+          </div>
+          <ClockProvider key={visiting.id} initialMs={progress.clockMs} initialRunning={false} onSave={noop}>
+            <main key={visiting.id}>
+              <Renderer
+                stage={visiting}
+                progress={visiting.id === "riddles" ? { ...progress, riddleIndex: 0 } : progress}
+                update={noop}
+                next={noop}
+                go={noop}
+              />
+            </main>
+          </ClockProvider>
+        </>
+      ) : (
+        <main key={stage.id}>
+          <Renderer stage={stage} progress={progress} update={update} next={next} go={go} />
+        </main>
+      )}
     </div>
+    </SeekProvider>
   );
 }

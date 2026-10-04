@@ -39,6 +39,8 @@ export interface Progress {
   music: boolean;
   /** Hidden secrets found around the site. */
   slips: string[];
+  /** The furthest page reached, so secrets can be hunted again on any page already seen. */
+  furthest: string;
 }
 
 export const FRESH: Progress = {
@@ -63,6 +65,7 @@ export const FRESH: Progress = {
   titleUnlocked: [],
   music: true,
   slips: [],
+  furthest: "difficulty",
 };
 
 function load(): Progress {

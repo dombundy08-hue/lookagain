@@ -137,7 +137,7 @@ function RecordedText({
             const isEdited = (allEdited ?? budget === null) || edited.has(key);
             nodes.push(
               isEdited ? (
-                <span key={key} className={quiet ? undefined : "glitch-in text-[#c6a6ff]"}>
+                <span key={key} className={quiet ? undefined : "glitch-in text-[#ff5a4f]"}>
                   {piece.edited}
                 </span>
               ) : (

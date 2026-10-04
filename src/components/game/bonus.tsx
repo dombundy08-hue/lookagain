@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { playAlarm } from "@/lib/audio";
 import { FileText, GripVertical, Radio, Star, Tv } from "lucide-react";
 
 import { Button } from "@/components/ui/8bit-button";
@@ -529,7 +530,10 @@ export function SpotStage({ stage, update, next }: StageProps<"spot">) {
     const id = window.setInterval(() => {
       const l = Math.max(0, end - performance.now());
       setLeftMs(l);
-      if (l <= 0) window.clearInterval(id);
+      if (l <= 0) {
+        window.clearInterval(id);
+        playAlarm();
+      }
     }, 31);
     return () => window.clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps

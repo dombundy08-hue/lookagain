@@ -2,6 +2,7 @@
 // puzzle to the next, and is saved so a reload doesn't reset it.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
+import { playAlarm } from "@/lib/audio";
 import { cn } from "@/lib/utils";
 
 interface ClockControl {
@@ -74,6 +75,7 @@ export function ClockProvider({
         endAt.current = null;
         setRunning(false);
         saveRef.current(0, false);
+        playAlarm();
       }
     }, 31);
     return () => window.clearInterval(id);
@@ -156,12 +158,12 @@ export function ClockFace({ ms, label = "Clock", running = true }: { ms: number;
   const announce = running && (secs === 60 || secs === 30 || secs === 10);
   return (
     <div className="flex items-center gap-3">
-      <span className="retro text-[8px] uppercase text-muted-foreground">{label}</span>
+      <span className="retro text-[10px] uppercase text-muted-foreground">{label}</span>
       <div
         role="timer"
         aria-label={`${Math.floor(ms / 60000)} minutes ${Math.floor((ms % 60000) / 1000)} seconds left`}
         className={cn(
-          "retro pixel-border bg-background px-3 py-2 text-sm tabular-nums md:text-base",
+          "retro pixel-border bg-background px-4 py-3 text-xl tabular-nums md:px-5 md:text-3xl",
           urgent ? "text-destructive [--pb:var(--destructive)]" : "text-primary",
           urgent && running && ms > 0 && "blink",
         )}
