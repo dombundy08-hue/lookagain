@@ -116,7 +116,7 @@ export const SLIPS: { id: string; text: string; mark?: string }[] = [
   { id: "eyes", text: "Did you see that too? I always told myself it was the studio lights." },
   { id: "m-clock-start", mark: "clock-start", text: "Harlan kept the ratings sheet taped up next to the booth clock. Every week the numbers were smaller. He said one more bad season and they'd turn the lights off for good." },
   { id: "m-tuner", mark: "tuner", text: "He used to sit on top of the studio radio while we tuned it. He'd turn his head toward the static, like he heard something in it." },
-  { id: "m-rewind", mark: "rewind", text: "The night I wrote the catchphrase, there was a little gold coin on my desk. I'd never seen it before. I don't remember writing the line. I remember the coin." },
+  { id: "m-rewind", mark: "rewind", text: "The night I wrote the catchphrase, I'd been using the method for hours. Then it found me something: a little gold coin. I thought nothing of it. I don't remember writing the line. I remember the coin." },
   { id: "m-order", mark: "order", text: "Harlan filed the segment notes every week. One week there was an extra page in the stack, in my handwriting. I don't write like that." },
   { id: "m-clock-result", mark: "clock-result", text: "Once the numbers came back, I started giving gold away on the air. Every week. I thought I was sharing my good luck. I was giving it away. I just didn't know what it was." },
   { id: "m-recall", mark: "recall", text: "Some nights I play the old tapes back and I'm saying things I never said. Small things. A word here, a word there." },
